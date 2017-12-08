@@ -1,0 +1,46 @@
+from datetime import datetime
+from pathlib import Path
+from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.python.keras.callbacks import ReduceLROnPlateau
+
+
+class Learner():
+
+    def __init__(self, model, version=None):
+
+        self.version = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        self.model = model.model
+        print(model.name)
+        Path('model/{}'.format(model.name)).mkdir(exist_ok=True)
+        self.dump_path = 'model/{}/{}.hdf5'.format(model.name,
+                                                   self.version)
+        self.callbacks = [EarlyStopping(monitor='val_loss',
+                                        patience=5,
+                                        verbose=1,
+                                        min_delta=0.01,
+                                        mode='min'),
+                          ReduceLROnPlateau(monitor='val_loss',
+                                            factor=0.1,
+                                            patience=3,
+                                            verbose=1,
+                                            epsilon=0.01,
+                                            mode='min'),
+                          ModelCheckpoint(monitor='val_loss',
+                                          filepath=self.dump_path,
+                                          save_best_only=True,
+                                          save_weights_only=True,
+                                          mode='min')]
+
+    def learn(self, train_generator, valid_generator, validation_steps,
+              steps_per_epoch=344,
+              epochs=20):
+        history = self.model.fit_generator(generator=train_generator,
+                                           steps_per_epoch=steps_per_epoch,
+                                           epochs=epochs,
+                                           callbacks=self.callbacks,
+                                           validation_data=valid_generator,
+                                           validation_steps=validation_steps)
+        return history
+
+    def predict(self, test_generator, steps):
+        return self.model.predict_generator(test_generator, steps)

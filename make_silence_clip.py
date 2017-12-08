@@ -1,0 +1,48 @@
+from datetime import datetime
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from scipy.io import wavfile
+import config
+import utils
+
+
+def silence_data_load():
+    file_df = pd.read_csv(config.TRAIN_FILE_META_INFO)
+    silence_df = file_df[file_df.possible_label == "_background_noise_"]
+    return silence_df
+
+
+if __name__ == "__main__":
+    utils.set_seed(2017)
+    
+    silence_df = silence_data_load()
+
+    silence_data = [wavfile.read(x)[1] for x in silence_df.path]
+    silence_data = np.concatenate(silence_data)
+    length = 16000
+
+    version = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
+    size = 2500
+    dir_path = Path("data/silence/{}".format(version))
+    dir_path.mkdir(exist_ok=True)
+
+    path_list = [dir_path/"simple_slice_{}.wav".format(i) for i in range(size)]
+    uid_list = ["Nothing" for _ in range(size)]
+    possible_label_list = ["silence" for _ in range(size)]
+    plnum_list = [10 for _ in range(size)]
+    
+    for i in range(2500):
+        start = np.random.randint(0, len(silence_data) - length)
+        wav = silence_data[start:start+length]
+        wavfile.write(path_list[i],
+                      length,
+                      wav)
+
+    file_info = {"path": path_list,
+                 "possible_label": possible_label_list,
+                 "uid": uid_list,
+                 "plnum": plnum_list}
+    pd.DataFrame(file_info).to_csv(dir_path/"file_info.csv",
+                                   index=False)

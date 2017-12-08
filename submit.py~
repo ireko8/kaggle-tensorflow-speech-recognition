@@ -1,0 +1,8 @@
+from pathlib import Path
+import pandas as pd
+import generator
+import config
+
+
+def test_data_load():
+    test_paths = Path(config.

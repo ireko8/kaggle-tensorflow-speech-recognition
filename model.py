@@ -10,10 +10,11 @@ import config
 class STFTCNN():
 
     def __init__(self,
-                 input_shape=(257, 98, 2),
                  name="STFTCNN"):
 
         self.name = name
+
+    def model_init(self, input_shape=(257, 98, 2)):
         
         x_in = Input(shape=input_shape)
         x = BatchNormalization()(x_in)

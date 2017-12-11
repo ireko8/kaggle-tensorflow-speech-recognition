@@ -3,6 +3,7 @@ import numpy as np
 import scipy.signal as signal
 from scipy.io import wavfile
 from tensorflow.python.keras.utils import to_categorical
+import augment
 
 
 def read_wav_file(fname):
@@ -11,22 +12,13 @@ def read_wav_file(fname):
     return wav, sample_rate
 
 
-def process_wav_file(fname, silence_data):
+def process_wav_file(fname, bgn_data):
     wav, sample_rate = read_wav_file(fname)
 
     if len(wav) > sample_rate:
-        i = np.random.randint(0, len(wav) - sample_rate)
-        wav = wav[i:(i+sample_rate)]
+        wav = augment.clip_random(wav, sample_rate)
     elif len(wav) < sample_rate:
-        rem_len = sample_rate - len(wav)
-        i = np.random.randint(0, len(silence_data) - rem_len)
-        silence_part = silence_data[i:(i+sample_rate)]
-        j = np.random.randint(0, rem_len)
-        silence_part_left = silence_part[0:j]
-        silence_part_right = silence_part[j:rem_len]
-        wav = np.concatenate([silence_part_left,
-                              wav,
-                              silence_part_right])
+        wav = augment.zero_padding_random(wav, sample_rate)
         
     specgram = signal.stft(wav, sample_rate,
                            nperseg=400,
@@ -41,21 +33,20 @@ def process_wav_file(fname, silence_data):
     return np.stack([phase, amp], axis=2)
 
 
-def batch_generator(input_df, batch_size, category_num, silence_paths,
+def batch_generator(input_df, batch_size, category_num, bgn_paths,
                     mode='train',
                     sampling_size=2000):
     
-    silence_data = [read_wav_file(x)[0] for x in silence_paths.path]
-    silence_data = np.concatenate(silence_data)
+    bgn_data = [read_wav_file(x)[0] for x in bgn_paths.path]
+    bgn_data = np.concatenate(bgn_data)
     
     def preprocess(wav_file):
-        return process_wav_file(wav_file, silence_data)
+        return process_wav_file(wav_file, bgn_data)
     
     while True:
         if mode == 'train':
             grouped = input_df.groupby('plnum')
             base_df = grouped.apply(lambda x: x.sample(n=sampling_size))
-            print(base_df.shape)
             base_df_id = random.sample(range(base_df.shape[0]),
                                        base_df.shape[0])
         else:

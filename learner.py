@@ -1,20 +1,31 @@
-from datetime import datetime
 from pathlib import Path
 from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras.callbacks import ReduceLROnPlateau
-from tensorflow.python.keras.callbacks import TensorBoard
+from tensorflow.python.keras.callbacks import CSVLogger
+import utils
 
 
 class Learner():
 
-    def __init__(self, model, version=None):
+    def __init__(self, model,
+                 dump_path=None,
+                 csv_log_path=None):
 
-        self.version = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        version = utils.now()
+        if dump_path is None:
+            Path('model/{}'.format(model.name)).mkdir(exist_ok=True)
+            self.dump_path = 'model/{}/{}.hdf5'.format(model.name, version)
+        else:
+            self.dump_path = dump_path
+
+        if csv_log_path is None:
+            Path('logs/{}'.format(model.name)).mkdir(exist_ok=True)
+            self.csv_log_path = 'logs/{}/{}_log.csv'.format(model.name,
+                                                            version)
+        else:
+            self.csv_log_path = csv_log_path
+
         self.model = model.model
-        print(model.name)
-        Path('model/{}'.format(model.name)).mkdir(exist_ok=True)
-        self.dump_path = 'model/{}/{}.hdf5'.format(model.name,
-                                                   self.version)
         self.callbacks = [EarlyStopping(monitor='val_loss',
                                         patience=5,
                                         verbose=1,
@@ -31,7 +42,7 @@ class Learner():
                                           save_best_only=True,
                                           save_weights_only=True,
                                           mode='min'),
-                          TensorBoard]
+                          CSVLogger(self.csv_log_path)]
 
     def learn(self, train_generator, valid_generator, validation_steps,
               steps_per_epoch=344,

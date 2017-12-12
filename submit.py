@@ -44,35 +44,34 @@ def ensemble(estimator, cv_path, test_paths, silence_paths, sub_path):
 
 if __name__ == '__main__':
 
+    utils.set_seed(2017)
     version = utils.now()
     id2name = dict(zip(range(len(config.POSSIBLE_LABELS)),
                        config.POSSIBLE_LABELS))
     
-    # cnn = model.STFTCNN()
-    # cnn.model_init()
+    cnn = model.STFTCNN()
+    cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    # cv_path = "cv/STFTCNN/2017_12_11_13_14_00"
-    # sub_path = Path("sub/STFTCNN")/version
-    # sub_path.mkdir(parents=True, exist_ok=True)
+    cv_path = "cv/STFTCNN/2017_12_12_16_47_42"
+    sub_path = Path("sub/STFTCNN")/version
+    sub_path.mkdir(parents=True, exist_ok=True)
 
-    # ensemble_probs = ensemble(cnn,
-    #                           cv_path,
-    #                           test_paths,
-    #                           silence_paths,
-    #                           sub_path)
+    ensemble_probs = ensemble(cnn,
+                              cv_path,
+                              test_paths,
+                              silence_paths,
+                              sub_path)
 
-    # test_fname = test_paths["path"].apply(lambda x: Path(x).parts[-1])
+    test_fname = test_paths["path"].apply(lambda x: Path(x).parts[-1])
 
-    # for fold, probs in enumerate(ensemble_probs):
-    #     sub_fold_plobs = pd.DataFrame(probs,
-    #                                   columns=config.POSSIBLE_LABELS)
-    #     sub_fold_plobs_df = pd.concat([test_fname, sub_fold_plobs], axis=1)
-    #     sub_fold_plobs_df.to_csv(sub_path/"{}_probs.csv".format(fold),
-    #                              index=False)
+    for fold, probs in enumerate(ensemble_probs):
+        sub_fold_plobs = pd.DataFrame(probs,
+                                      columns=config.POSSIBLE_LABELS)
+        sub_fold_plobs_df = pd.concat([test_fname, sub_fold_plobs], axis=1)
+        sub_fold_plobs_df.to_csv(sub_path/"{}_probs.csv".format(fold),
+                                 index=False)
 
-    # predict_probs = np.array(ensemble_probs).mean(axis=0)
-    predict_probs = pd.read_csv("sub/STFTCNN/2017_12_12_15_01_49/0_probs.csv")
-    predict_probs = predict_probs.iloc[:, 1:].values
+    predict_probs = np.array(ensemble_probs).mean(axis=0)
     predict_cls = np.argmax(predict_probs, axis=1)
 
     submission = dict()

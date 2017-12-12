@@ -110,6 +110,7 @@ def cross_validation(estimator,
 
         train = file_df[file_df.uid.isin(train_uid)]
         test = file_df[file_df.uid.isin(test_uid)]
+        assert(set(train.uid) & set(test.uid) == set())
         train = pd.concat([train, silence_data.iloc[train_silence]])
         test = pd.concat([test, silence_data.iloc[test_silence]])
         print(i, len(train), len(test), len(train_silence), len(test_silence))
@@ -130,7 +131,7 @@ def cross_validation(estimator,
 
 
 if __name__ == "__main__":
-    utils.set_seed(2017)
+    utils.set_seed(1000)
 
     cnn = model.STFTCNN()
     silence_data_version = "2017_12_08_15_41_26"

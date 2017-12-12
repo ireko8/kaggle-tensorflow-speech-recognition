@@ -67,6 +67,7 @@ def validation(silence_data_version,
                batch_size=64,
                silence_train_size=2000):
     file_df, bg_paths, silence_df = data_load(silence_data_version)
+
     train_df = file_df[~file_df.is_valid]
     valid_df = file_df[file_df.is_valid]
 
@@ -103,19 +104,20 @@ def cross_validation(estimator,
     kfold = zip(kfold_data, kfold_silence)
     result = list()
 
-    for i, ((train, test), (train_silence, test_silence)) in enumerate(kfold):
-        train_uid = uid_list[train]
-        test_uid = uid_list[test]
+    for i, ((X_id, y_id), (train_silence, test_silence)) in enumerate(kfold):
+        train_uid = uid_list[X_id]
+        test_uid = uid_list[y_id]
 
         train = file_df[file_df.uid.isin(train_uid)]
         test = file_df[file_df.uid.isin(test_uid)]
         train = pd.concat([train, silence_data.iloc[train_silence]])
         test = pd.concat([test, silence_data.iloc[test_silence]])
-        print(i, len(train), len(test))
+        print(i, len(train), len(test), len(train_silence), len(test_silence))
 
         fold_dump_path = str(version_path / "fold_{}.hdf5".format(i))
         csv_log_path = str(version_path / "fold_{}_log.csv".format(i))
 
+        estimator = model.STFTCNN()
         estimator.model_init()  # initialize model
 
         res_fold = experiment(estimator, train, test, bg_paths,

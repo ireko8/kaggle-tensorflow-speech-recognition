@@ -3,6 +3,10 @@ import scipy.signal as signal
 import librosa
 
 
+def change_volume(wav, rate):
+    return wav*rate
+
+
 def roll(wav, shift):
     return np.roll(wav, shift)
 

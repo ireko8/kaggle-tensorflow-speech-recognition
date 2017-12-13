@@ -4,6 +4,7 @@ import scipy.signal as signal
 from scipy.io import wavfile
 from tensorflow.python.keras.utils import to_categorical
 import augment
+import config
 
 
 def read_wav_file(fname):
@@ -41,8 +42,9 @@ def batch_generator(input_df, batch_size, category_num, bgn_paths,
     bgn_data = np.concatenate(bgn_data)
     
     def preprocess(wav_file):
-        return process_wav_file(wav_file, bgn_data)
-    
+        wav = process_wav_file(wav_file, bgn_data)
+        return wav
+        
     while True:
         if mode == 'train':
             grouped = input_df.groupby('plnum')

@@ -52,7 +52,7 @@ if __name__ == '__main__':
     cnn = model.STFTCNN()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    cv_path = "cv/STFTCNN/2017_12_12_16_47_42"
+    cv_path = "cv/STFTCNN/2017_12_13_14_55_05"
     sub_path = Path("sub/STFTCNN")/version
     sub_path.mkdir(parents=True, exist_ok=True)
 

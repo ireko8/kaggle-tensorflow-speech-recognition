@@ -91,6 +91,8 @@ def cross_validation(estimator,
                      silence_train_size=1800):
     
     """cross_validation func with silence_data
+    
+    Todo: uid label list encoding -> stratified kfold
     """
 
     version_path = Path("cv/")/estimator.name/cv_version
@@ -131,9 +133,10 @@ def cross_validation(estimator,
 
 
 if __name__ == "__main__":
-    utils.set_seed(1000)
+    utils.set_seed(2017)
 
     cnn = model.STFTCNN()
     silence_data_version = "2017_12_08_15_41_26"
     cv_version = utils.now()
-    res = cross_validation(cnn, silence_data_version, cv_version)
+    validation(silence_data_version, cnn)
+    # res = cross_validation(cnn, silence_data_version, cv_version)

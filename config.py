@@ -26,6 +26,8 @@ SHIFT_FORWARD = int(SAMPLE_RATE*0.1)
 SHIFT_BACKWARD = -int(SAMPLE_RATE*0.1)
 SPEED_UP = 1.2
 SPEED_DOWN = 0.8
+PITCH_UP = 6
+PITCH_DOWN = -6
 ADD_WHITENOISE_RATE = 0.005
 MIX_BGN_RATE = 0.005
 
@@ -36,6 +38,8 @@ AUG_LIST = ["id",
             "shift_backward",
             "speed_up",
             "speed_down",
+            "pitch_up",
+            "pitch_down",
             "add_wn",
             "mix_bgn",
             "lp_2000",

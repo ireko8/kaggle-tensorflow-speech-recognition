@@ -14,6 +14,13 @@ def roll(wav, shift):
     return np.roll(wav, shift)
 
 
+def pitch_shift(wav, pitch):
+    wav = librosa.effects.pitch_shift(wav,
+                                      config.SAMPLE_RATE,
+                                      n_steps=pitch)
+    return wav
+
+
 def shift(wav, shift):
     shifted = np.zeros_like(wav)
     if shift >= 0:
@@ -132,6 +139,8 @@ class Augment():
         shift_backward = partial(shift, shift=config.SHIFT_BACKWARD)
         speed_up = partial(strech, rate=config.SPEED_UP)
         speed_down = partial(strech, rate=config.SPEED_DOWN)
+        pitch_up = partial(pitch_shift, pitch=config.PITCH_UP)
+        pitch_down = partial(pitch_shift, pitch=config.PITCH_DOWN)
         add_wn = partial(add_whitenoise, rate=config.ADD_WHITENOISE_RATE)
         patch_bg = partial(patch_bg_random, sample_rate=config.SAMPLE_RATE,
                            bgn=bgn)
@@ -153,6 +162,8 @@ class Augment():
                            "shift_backward": shift_backward,
                            "speed_up": speed_up,
                            "speed_down": speed_down,
+                           "pitch_up": pitch_up,
+                           "pitch_down": pitch_down,
                            "add_wn": add_wn,
                            "patch_bg": patch_bg,
                            "mix_bgn": mix_bgn,

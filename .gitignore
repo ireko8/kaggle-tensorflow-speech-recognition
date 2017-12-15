@@ -113,3 +113,6 @@ cv/
 sub/
 submit/
 logs/
+
+#emacs
+*~

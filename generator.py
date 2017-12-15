@@ -5,22 +5,24 @@ from scipy.io import wavfile
 from tensorflow.python.keras.utils import to_categorical
 import augment
 import config
+import utils
 
 
 def read_wav_file(fname):
     sample_rate, wav = wavfile.read(fname)
     wav = wav.astype(np.float32) / np.iinfo(np.int16).max
-    return wav, sample_rate
+    return sample_rate, wav
 
 
-def process_wav_file(fname, bgn_data):
-    wav, sample_rate = read_wav_file(fname)
+def process_wav_file(fname, bgn_data, aug_name, aug_class):
+    sample_rate, wav = read_wav_file(fname)
 
     if len(wav) > sample_rate:
         wav = augment.clip_random(wav, sample_rate)
     elif len(wav) < sample_rate:
         wav = augment.zero_padding_random(wav, sample_rate)
-        
+
+    wav = aug_class.abbrev_func_map[aug_name](wav)
     specgram = signal.stft(wav, sample_rate,
                            nperseg=400,
                            noverlap=240,
@@ -30,25 +32,30 @@ def process_wav_file(fname, bgn_data):
 
     phase = np.angle(specgram[2]) / np.pi
     amp = np.log1p(np.abs(specgram[2]))
-    
-    return np.stack([phase, amp], axis=2)
+
+    return [np.stack([phase, amp], axis=2)]
 
 
-def batch_generator(input_df, batch_size, category_num, bgn_paths,
+def batch_generator(input_df, batch_size, category_num,
+                    bgn_paths,
+                    aug_processes=config.AUG_LIST,
                     mode='train',
                     sampling_size=2000):
     
-    bgn_data = [read_wav_file(x)[0] for x in bgn_paths.path]
+    bgn_data = [read_wav_file(x)[1] for x in bgn_paths.path]
     bgn_data = np.concatenate(bgn_data)
+
+    aug_class = augment.Augment(bgn_data, aug_processes)
     
-    def preprocess(wav_file):
-        wav = process_wav_file(wav_file, bgn_data)
+    def preprocess(row):
+        wav = process_wav_file(row.path, bgn_data, row.aug_name, aug_class)
         return wav
         
     while True:
         if mode == 'train':
             grouped = input_df.groupby('plnum')
             base_df = grouped.apply(lambda x: x.sample(n=sampling_size))
+            base_df = utils.cartesian_product(base_df, aug_class.augment_df)
             base_df_id = random.sample(range(base_df.shape[0]),
                                        base_df.shape[0])
         else:
@@ -59,7 +66,8 @@ def batch_generator(input_df, batch_size, category_num, bgn_paths,
             batch_df_id = base_df_id[start:end]
             batch_df = base_df.iloc[batch_df_id]
 
-            x_batch = np.stack(batch_df.path.apply(preprocess).values)
+            x_batch = batch_df.apply(preprocess, axis=1).values
+            x_batch = np.concatenate(x_batch)
             if mode != 'test':
                 y_batch = batch_df.plnum.values
                 y_batch = to_categorical(y_batch, num_classes=category_num)

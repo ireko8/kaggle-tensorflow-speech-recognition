@@ -31,7 +31,7 @@ class STFTCNN():
         x = Dropout(0.5)(x)
         x = Dense(len(config.POSSIBLE_LABELS), activation='softmax')(x)
         model = Model(inputs=x_in, outputs=x)
-        model.compile(optimizer='rmsprop',
+        model.compile(optimizer='nadam',
                       loss='categorical_crossentropy',
                       metrics=['accuracy'])
 

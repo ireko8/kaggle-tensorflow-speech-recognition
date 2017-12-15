@@ -35,6 +35,7 @@ def experiment(estimator,
                bg_paths,
                batch_size,
                sample_size,
+               augment_list,
                version_path=None,
                csv_log_path=None):
     
@@ -43,15 +44,18 @@ def experiment(estimator,
                                                 batch_size,
                                                 label_num,
                                                 bg_paths,
+                                                aug_processes=augment_list,
                                                 sampling_size=sample_size)
     valid_generator = generator.batch_generator(valid_df,
                                                 batch_size,
                                                 label_num,
                                                 bg_paths,
+                                                aug_processes=augment_list,
                                                 mode='valid',
                                                 sampling_size=sample_size)
+    augmented_data_size = sample_size*label_num*len(augment_list)
     valid_steps = int(np.ceil(valid_df.shape[0]/batch_size))
-    steps_per_epoch = int(np.ceil(sample_size*label_num/batch_size))
+    steps_per_epoch = int(np.ceil(augmented_data_size/batch_size))
 
     learn = learner.Learner(estimator, version_path, csv_log_path)
     result = learn.learn(train_generator,
@@ -63,8 +67,9 @@ def experiment(estimator,
 
 def validation(silence_data_version,
                estimator,
+               augment_list,
                sample_size=2000,
-               batch_size=64,
+               batch_size=config.BATCH_SIZE,
                silence_train_size=2000):
     file_df, bg_paths, silence_df = data_load(silence_data_version)
 
@@ -78,7 +83,7 @@ def validation(silence_data_version,
 
     estimator.model_init()
     result = experiment(estimator, train_df, valid_df, bg_paths,
-                        batch_size, sample_size)
+                        batch_size, sample_size, augment_list)
     return result
 
 
@@ -138,5 +143,5 @@ if __name__ == "__main__":
     cnn = model.STFTCNN()
     silence_data_version = "2017_12_08_15_41_26"
     cv_version = utils.now()
-    validation(silence_data_version, cnn)
+    validation(silence_data_version, cnn, config.AUG_LIST)
     # res = cross_validation(cnn, silence_data_version, cv_version)

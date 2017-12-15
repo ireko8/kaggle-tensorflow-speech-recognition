@@ -14,7 +14,7 @@ def read_wav_file(fname):
     return sample_rate, wav
 
 
-def process_wav_file(fname, bgn_data, aug_name, aug_class):
+def process_wav_file(fname, bgn_data, aug_name=None, aug_class=None):
     sample_rate, wav = read_wav_file(fname)
 
     if len(wav) > sample_rate:
@@ -22,7 +22,9 @@ def process_wav_file(fname, bgn_data, aug_name, aug_class):
     elif len(wav) < sample_rate:
         wav = augment.zero_padding_random(wav, sample_rate)
 
-    wav = aug_class.abbrev_func_map[aug_name](wav)
+    if aug_name:
+        wav = aug_class.abbrev_func_map[aug_name](wav)
+    
     specgram = signal.stft(wav, sample_rate,
                            nperseg=400,
                            noverlap=240,
@@ -47,8 +49,14 @@ def batch_generator(input_df, batch_size, category_num,
 
     aug_class = augment.Augment(bgn_data, aug_processes)
     
-    def preprocess(row):
-        wav = process_wav_file(row.path, bgn_data, row.aug_name, aug_class)
+    def train_preprocess(row):
+        wav = process_wav_file(row.path, bgn_data,
+                               aug_name=row.aug_name,
+                               aug_class=aug_class)
+        return wav
+
+    def valid_preprocess(path):
+        wav = process_wav_file(path, bgn_data)
         return wav
         
     while True:
@@ -66,8 +74,13 @@ def batch_generator(input_df, batch_size, category_num,
             batch_df_id = base_df_id[start:end]
             batch_df = base_df.iloc[batch_df_id]
 
-            x_batch = batch_df.apply(preprocess, axis=1).values
+            if mode == 'train':
+                x_batch = batch_df.apply(train_preprocess, axis=1).values
+            else:
+                x_batch = batch_df.path.apply(valid_preprocess).values
+
             x_batch = np.concatenate(x_batch)
+
             if mode != 'test':
                 y_batch = batch_df.plnum.values
                 y_batch = to_categorical(y_batch, num_classes=category_num)

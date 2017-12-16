@@ -52,26 +52,27 @@ if __name__ == '__main__':
     cnn = model.STFTCNN()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    cv_path = "cv/STFTCNN/2017_12_13_14_55_05"
-    sub_path = Path("sub/STFTCNN")/version
-    sub_path.mkdir(parents=True, exist_ok=True)
+    cnn.model.load_weights("model/STFTCNN/2017_12_15_19_24_29.hdf5")
+    # cv_path = "cv/STFTCNN/2017_12_13_14_55_05"
+    # sub_path = Path("sub/STFTCNN")/version
+    # sub_path.mkdir(parents=True, exist_ok=True)
 
-    ensemble_probs = ensemble(cnn,
-                              cv_path,
-                              test_paths,
-                              silence_paths,
-                              sub_path)
+    # ensemble_probs = ensemble(cnn,
+    #                           cv_path,
+    #                           test_paths,
+    #                           silence_paths,
+    #                           sub_path)
 
-    test_fname = test_paths["path"].apply(lambda x: Path(x).parts[-1])
+    # test_fname = test_paths["path"].apply(lambda x: Path(x).parts[-1])
 
-    for fold, probs in enumerate(ensemble_probs):
-        sub_fold_plobs = pd.DataFrame(probs,
-                                      columns=config.POSSIBLE_LABELS)
-        sub_fold_plobs_df = pd.concat([test_fname, sub_fold_plobs], axis=1)
-        sub_fold_plobs_df.to_csv(sub_path/"{}_probs.csv".format(fold),
-                                 index=False)
+    # for fold, probs in enumerate(ensemble_probs):
+    #     sub_fold_plobs = pd.DataFrame(probs,
+    #                                   columns=config.POSSIBLE_LABELS)
+    #     sub_fold_plobs_df = pd.concat([test_fname, sub_fold_plobs], axis=1)
+    #     sub_fold_plobs_df.to_csv(sub_path/"{}_probs.csv".format(fold),
+    #                              index=False)
 
-    predict_probs = np.array(ensemble_probs).mean(axis=0)
+    predict_probs = predict(test_paths, silence_paths, cnn)
     predict_cls = np.argmax(predict_probs, axis=1)
 
     submission = dict()

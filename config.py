@@ -30,6 +30,9 @@ PITCH_UP = 6
 PITCH_DOWN = -6
 ADD_WHITENOISE_RATE = 0.005
 MIX_BGN_RATE = 0.005
+MIX_BGN_MAX = 0.5
+LP_MIN = 2000
+LP_MAX = 8000
 
 AUG_LIST = ["id",
             "vol_up",

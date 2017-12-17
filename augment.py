@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.signal as signal
 import librosa
 import config
+import utils
 
 
 def change_volume(wav, rate):
@@ -46,7 +47,7 @@ def strech(wav, rate=1):
 
 def add_whitenoise(wav, rate=0.005):
     wn = np.random.randn(len(wav))
-    wav += rate*wn
+    wav = (1-rate)*wav + rate*wn
     return wav
 
 
@@ -65,13 +66,15 @@ def mix_two_wav(wav1, wav2, mix_rate=0.5):
 
 
 def mix_bgn_wav(wav, bgn, mix_rate=0.005):
-    i = np.random.randint(0, len(wav))
+    i = np.random.randint(0, len(bgn) - len(wav))
     bgn_cut = bgn[i:i+len(wav)]
-    wav = wav + mix_rate*bgn_cut
+    wav = (1-mix_rate)*wav + mix_rate*bgn_cut
     return wav
 
 
-def lowpass_filter(samples, cutoff, sample_rate, numtaps=255):
+def lowpass_filter(samples, cutoff,
+                   sample_rate=config.SAMPLE_RATE,
+                   numtaps=255):
     nyq_freq = sample_rate/2
     cutoff_normalized = cutoff/nyq_freq
     fir_filter = signal.firwin(numtaps, cutoff_normalized)
@@ -137,14 +140,32 @@ class Augment():
         vol_down = partial(change_volume, rate=config.VOLUME_DOWN)
         shift_forward = partial(shift, shift=config.SHIFT_FORWARD)
         shift_backward = partial(shift, shift=config.SHIFT_BACKWARD)
+        shift_random = utils.rand_decorator("shift",
+                                            start=config.SHIFT_FORWARD,
+                                            end=config.SHIFT_BACKWARD)(shift)
+        
         speed_up = partial(strech, rate=config.SPEED_UP)
         speed_down = partial(strech, rate=config.SPEED_DOWN)
+        speed_random = utils.rand_decorator("rate",
+                                            start=config.SPEED_DOWN,
+                                            end=config.SPEED_UP)(strech)
+        
         pitch_up = partial(pitch_shift, pitch=config.PITCH_UP)
         pitch_down = partial(pitch_shift, pitch=config.PITCH_DOWN)
+        pitch_random = utils.rand_decorator("pitch",
+                                            start=config.PITCH_DOWN,
+                                            end=config.PITCH_UP)(pitch_shift)
+        
         add_wn = partial(add_whitenoise, rate=config.ADD_WHITENOISE_RATE)
         patch_bg = partial(patch_bg_random, sample_rate=config.SAMPLE_RATE,
                            bgn=bgn)
         mix_bgn = partial(mix_bgn_wav, bgn=bgn, mix_rate=config.MIX_BGN_RATE)
+        mix_random = partial(utils.rand_decorator("mix_rate",
+                                                  start=config.MIX_BGN_RATE,
+                                                  end=config.MIX_BGN_MAX)
+                             (mix_bgn_wav),
+                             bgn=bgn)
+        
         lp_2000 = partial(lowpass_filter,
                           cutoff=2000,
                           sample_rate=config.SAMPLE_RATE)
@@ -154,21 +175,29 @@ class Augment():
         lp_6000 = partial(lowpass_filter,
                           cutoff=6000,
                           sample_rate=config.SAMPLE_RATE)
+        lp_random = utils.rand_decorator("cutoff",
+                                         start=config.LP_MIN,
+                                         end=config.LP_MAX)(lowpass_filter)
 
         abbrev_func_map = {"id": (lambda x: x),
                            "vol_up": vol_up,
                            "vol_down": vol_down,
                            "shift_forward": shift_forward,
                            "shift_backward": shift_backward,
+                           "shift_random": shift_random,
                            "speed_up": speed_up,
                            "speed_down": speed_down,
+                           "speed_random": speed_random,
                            "pitch_up": pitch_up,
                            "pitch_down": pitch_down,
+                           "pitch_random": pitch_random,
                            "add_wn": add_wn,
                            "patch_bg": patch_bg,
                            "mix_bgn": mix_bgn,
+                           "mix_random": mix_random,
                            "lp_2000": lp_2000,
                            "lp_4000": lp_4000,
-                           "lp_6000": lp_6000}
+                           "lp_6000": lp_6000,
+                           "lp_random": lp_random}
         
         self.abbrev_func_map = abbrev_func_map

@@ -22,29 +22,24 @@ SAMPLE_RATE = 16000
 
 VOLUME_UP = 1.2
 VOLUME_DOWN = 0.8
-SHIFT_FORWARD = int(SAMPLE_RATE*0.1)
-SHIFT_BACKWARD = -int(SAMPLE_RATE*0.1)
+SHIFT_FORWARD = int(SAMPLE_RATE*0.2) + 1
+SHIFT_BACKWARD = -int(SAMPLE_RATE*0.2)
 SPEED_UP = 1.2
 SPEED_DOWN = 0.8
-PITCH_UP = 6
-PITCH_DOWN = -6
+PITCH_UP = 4
+PITCH_DOWN = -4
 ADD_WHITENOISE_RATE = 0.005
-MIX_BGN_RATE = 0.005
-MIX_BGN_MAX = 0.5
+ADD_WHITENOISE_MIN = 0.005
+ADD_WHITENOISE_MAX = 0.02
+MIX_BGN_RATE = 0.1
+MIX_BGN_MAX = 0.2
 LP_MIN = 2000
 LP_MAX = 8000
 
 AUG_LIST = ["id",
-            "vol_up",
-            "vol_down",
-            "shift_forward",
-            "shift_backward",
-            "speed_up",
-            "speed_down",
-            "pitch_up",
-            "pitch_down",
+            "shift_random",
+            "speed_random",
+            "pitch_random",
             "add_wn",
-            "mix_bgn",
-            "lp_2000",
-            "lp_4000",
-            "lp_6000"]
+            "mix_random"]
+

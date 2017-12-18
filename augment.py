@@ -47,8 +47,8 @@ def strech(wav, rate=1):
 
 def add_whitenoise(wav, rate=0.005):
     wn = np.random.randn(len(wav))
-    wav = (1-rate)*wav + rate*wn
-    return wav
+    wav = wav + rate*wn
+    return np.clip(wav, -1, 1).astype(np.float32)
 
 
 def add_pinknoise(wav, rate=0.005):
@@ -141,8 +141,9 @@ class Augment():
         shift_forward = partial(shift, shift=config.SHIFT_FORWARD)
         shift_backward = partial(shift, shift=config.SHIFT_BACKWARD)
         shift_random = utils.rand_decorator("shift",
-                                            start=config.SHIFT_FORWARD,
-                                            end=config.SHIFT_BACKWARD)(shift)
+                                            start=config.SHIFT_BACKWARD,
+                                            end=config.SHIFT_FORWARD,
+                                            integer=True)(shift)
         
         speed_up = partial(strech, rate=config.SPEED_UP)
         speed_down = partial(strech, rate=config.SPEED_DOWN)
@@ -156,7 +157,10 @@ class Augment():
                                             start=config.PITCH_DOWN,
                                             end=config.PITCH_UP)(pitch_shift)
         
-        add_wn = partial(add_whitenoise, rate=config.ADD_WHITENOISE_RATE)
+        # add_wn = partial(add_whitenoise, rate=config.ADD_WHITENOISE_RATE)
+        add_wn = utils.rand_decorator("rate",
+                                      start=config.ADD_WHITENOISE_MIN,
+                                      end=config.ADD_WHITENOISE_MAX)(add_whitenoise)
         patch_bg = partial(patch_bg_random, sample_rate=config.SAMPLE_RATE,
                            bgn=bgn)
         mix_bgn = partial(mix_bgn_wav, bgn=bgn, mix_rate=config.MIX_BGN_RATE)

@@ -27,11 +27,14 @@ def urand_given_range(start, end):
     return (end - start) * r + start
 
 
-def rand_decorator(keyvar, start, end):
+def rand_decorator(keyvar, start, end, integer=False):
     def _rand_decorator(func):
         @wraps(func)
         def wrapper(*args, **kargs):
-            r = urand_given_range(start, end)
+            if integer is True:
+                r = np.random.randint(start, end)
+            else:
+                r = urand_given_range(start, end)
             kargs[keyvar] = r
             res = func(*args, **kargs)
             return res

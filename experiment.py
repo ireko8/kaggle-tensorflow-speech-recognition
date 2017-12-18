@@ -138,7 +138,7 @@ def cross_validation(estimator,
 
 
 if __name__ == "__main__":
-    utils.set_seed(2017)
+    utils.set_seed(3017)
 
     cnn = model.STFTCNN()
     silence_data_version = "2017_12_08_15_41_26"

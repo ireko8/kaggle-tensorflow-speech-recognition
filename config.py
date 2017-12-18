@@ -39,7 +39,6 @@ LP_MAX = 8000
 AUG_LIST = ["id",
             "shift_random",
             "speed_random",
-            "pitch_random",
             "add_wn",
             "mix_random"]
 

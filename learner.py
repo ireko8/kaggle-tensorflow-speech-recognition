@@ -29,7 +29,7 @@ class Learner():
         self.callbacks = [EarlyStopping(monitor='val_loss',
                                         patience=5,
                                         verbose=1,
-                                        min_delta=0.01,
+                                        min_delta=0.005,
                                         mode='min'),
                           ReduceLROnPlateau(monitor='val_loss',
                                             factor=0.1,

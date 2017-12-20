@@ -181,7 +181,8 @@ class Augment():
                           sample_rate=config.SAMPLE_RATE)
         lp_random = utils.rand_decorator("cutoff",
                                          start=config.LP_MIN,
-                                         end=config.LP_MAX)(lowpass_filter)
+                                         end=config.LP_MAX,
+                                         integer=True)(lowpass_filter)
 
         abbrev_func_map = {"id": (lambda x: x),
                            "vol_up": vol_up,

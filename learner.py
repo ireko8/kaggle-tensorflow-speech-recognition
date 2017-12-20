@@ -46,7 +46,7 @@ class Learner():
 
     def learn(self, train_generator, valid_generator, validation_steps,
               steps_per_epoch=344,
-              epochs=20):
+              epochs=40):
         history = self.model.fit_generator(generator=train_generator,
                                            steps_per_epoch=steps_per_epoch,
                                            epochs=epochs,

@@ -140,7 +140,7 @@ def cross_validation(estimator,
 if __name__ == "__main__":
     utils.set_seed(2017)
 
-    cnn = model.STFTCNN()
+    cnn = model.VGG1D()
     silence_data_version = "2017_12_08_15_41_26"
     cv_version = utils.now()
     validation(silence_data_version, cnn, config.AUG_LIST)

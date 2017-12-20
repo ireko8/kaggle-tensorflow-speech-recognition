@@ -25,6 +25,10 @@ def process_wav_file(fname, bgn_data, aug_name=None, aug_class=None):
     if aug_name:
         wav = aug_class.abbrev_func_map[aug_name](wav)
 
+    return wav
+
+
+def wav_to_spct(wav, sample_rate=config.SAMPLE_RATE):
     specgram = signal.stft(wav, sample_rate,
                            nperseg=400,
                            noverlap=240,
@@ -35,10 +39,7 @@ def process_wav_file(fname, bgn_data, aug_name=None, aug_class=None):
     phase = np.angle(specgram[2]) / np.pi
     amp = np.log1p(np.abs(specgram[2]))
 
-    try:
-        assert(np.stack([phase, amp], axis=2).dtype == np.float32)
-    except:
-        import ipdb; ipdb.set_trace()
+    assert(np.stack([phase, amp], axis=2).dtype == np.float32)
     
     return [np.stack([phase, amp], axis=2)]
 
@@ -57,14 +58,14 @@ def batch_generator(input_df, batch_size, category_num,
     aug_class = augment.Augment(bgn_data, aug_processes)
     
     def train_preprocess(row):
-        spect = process_wav_file(row.path, bgn_data,
-                                 aug_name=row.aug_name,
-                                 aug_class=aug_class)
-        return spect
+        wav = process_wav_file(row.path, bgn_data,
+                               aug_name=row.aug_name,
+                               aug_class=aug_class)
+        return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
 
     def valid_preprocess(path):
         wav = process_wav_file(path, bgn_data)
-        return wav
+        return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
         
     while True:
         if mode == 'train':
@@ -84,9 +85,9 @@ def batch_generator(input_df, batch_size, category_num,
             if mode == 'train':
                 x_batch = batch_df.apply(train_preprocess, axis=1).values
                 x_batch = np.concatenate(x_batch)
-                while len(x_batch.shape) != 4:
-                    x_batch = batch_df.apply(train_preprocess, axis=1).values
-                    x_batch = np.concatenate(x_batch)
+                # while len(x_batch.shape) != 4:
+                #     x_batch = batch_df.apply(train_preprocess, axis=1).values
+                #     x_batch = np.concatenate(x_batch)
             else:
                 x_batch = batch_df.path.apply(valid_preprocess).values
                 x_batch = np.concatenate(x_batch)

@@ -16,7 +16,7 @@ POSSIBLE_LABELS = ['yes',
 TEST_AUDIO_PATH = "input/test/audio"
 SILECE_DATA_PATH = "data/silence"
 
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 
 SAMPLE_RATE = 16000
 
@@ -36,16 +36,6 @@ MIX_BGN_MAX = 0.5
 LP_MIN = 2000
 LP_MAX = 7999
 
-AUG_LIST = ["id",
-            "shift_forward",
-            "shift_random",
-            "shift_backward",
-            "speed_up",
-            "speed_down",
-            "speed_random",
-            "pitch_up",
-            "pitch_down",
-            "pitch_random",
-            "add_wn",
-            "mix_random"]
+AUG_LIST = ["id"]
+
 

@@ -36,6 +36,11 @@ MIX_BGN_MAX = 0.5
 LP_MIN = 2000
 LP_MAX = 7999
 
-AUG_LIST = ["id"]
+AUG_LIST = ["id",
+            "speed_random",
+            "shift_random",
+            "pitch_random",
+            "add_wn",
+            "mix_random"]
 
 

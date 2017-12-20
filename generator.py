@@ -85,9 +85,9 @@ def batch_generator(input_df, batch_size, category_num,
             if mode == 'train':
                 x_batch = batch_df.apply(train_preprocess, axis=1).values
                 x_batch = np.concatenate(x_batch)
-                # while len(x_batch.shape) != 4:
-                #     x_batch = batch_df.apply(train_preprocess, axis=1).values
-                #     x_batch = np.concatenate(x_batch)
+                while len(x_batch.shape) != 3:
+                    x_batch = batch_df.apply(train_preprocess, axis=1).values
+                    x_batch = np.concatenate(x_batch)
             else:
                 x_batch = batch_df.path.apply(valid_preprocess).values
                 x_batch = np.concatenate(x_batch)

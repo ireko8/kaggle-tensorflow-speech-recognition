@@ -157,10 +157,7 @@ class Augment():
                                             start=config.PITCH_DOWN,
                                             end=config.PITCH_UP)(pitch_shift)
         
-        # add_wn = partial(add_whitenoise, rate=config.ADD_WHITENOISE_RATE)
-        add_wn = utils.rand_decorator("rate",
-                                      start=config.ADD_WHITENOISE_MIN,
-                                      end=config.ADD_WHITENOISE_MAX)(add_whitenoise)
+        add_wn = partial(add_whitenoise, rate=config.ADD_WHITENOISE_RATE)
         patch_bg = partial(patch_bg_random, sample_rate=config.SAMPLE_RATE,
                            bgn=bgn)
         mix_bgn = partial(mix_bgn_wav, bgn=bgn, mix_rate=config.MIX_BGN_RATE)

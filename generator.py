@@ -24,6 +24,7 @@ def process_wav_file(fname, bgn_data, aug_name=None, aug_class=None):
 
     if aug_name:
         wav = aug_class.abbrev_func_map[aug_name](wav)
+        wav = np.clip(wav, -1, 1)
 
     return wav
 

@@ -35,8 +35,8 @@ def possible_labeling(label, possible):
         return label
 
 
-if __name__ == '__main__':
-    audio_path = Path(config.TRAIN_AUDIO_PATH)
+def extract_file_info(audio_path):
+    audio_path = Path(audio_path)
     train_path = Path(config.TRAIN_PATH)
     label2n = dict(zip(config.POSSIBLE_LABELS,
                        range(len(config.POSSIBLE_LABELS))))
@@ -60,5 +60,17 @@ if __name__ == '__main__':
     train_file_info["is_valid"] = train_file_info['path'].apply(is_valid)
     train_file_info["possible_label"] = train_file_info.label.apply(possible)
     train_file_info["plnum"] = train_file_info.possible_label.replace(label2n)
-    
-    train_file_info.to_csv("data/train_file_info.csv")
+
+    return train_file_info
+
+
+if __name__ == '__main__':
+    augment_path = "data/augment"
+    aug_dirs = augment_path.glob('*')
+
+    for aug_dir in aug_dirs:
+        aug_dir_path = Path(aug_dir)
+        print(aug_dir)
+        aug_type = aug_dir_path.parts[-1]
+        train_file_info = extract_file_info(aug_dir)
+        train_file_info.to_csv("data/{}_file_info.csv".format(aug_type))

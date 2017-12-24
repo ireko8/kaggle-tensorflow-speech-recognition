@@ -17,6 +17,11 @@ Todo:
 """
 
 
+def augment_data_load(paths, aug, version):
+    augment_file_info = pd.read_csv(Path("data/augment")/aug/version)
+    return augment_file_info[augment_file_info.path.isin(paths)]
+
+
 def data_load(silence_data_version):
     file_df = pd.read_csv(config.TRAIN_FILE_META_INFO)
     file_df = file_df[["path", "uid", "possible_label", "plnum", "is_valid"]]
@@ -143,5 +148,5 @@ if __name__ == "__main__":
     cnn = model.VGG1D()
     silence_data_version = "2017_12_08_15_41_26"
     cv_version = utils.now()
-    validation(silence_data_version, cnn, config.AUG_LIST)
+    validation(silence_data_version, cnn, ["id"])
     # res = cross_validation(cnn, silence_data_version, cv_version)

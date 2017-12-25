@@ -8,14 +8,17 @@ def extract_uid_and_nohash(wav_path):
     uid_pattern = r'^(\w+)_nohash_(\d+).wav'
     label = wav_path.parts[-2]
     
-    if label == "_background_noise_":
+    if label == "_background_noise_" or label == 'silence':
         uid = 'No User'
         nohash = -1
     else:
-        x = re.match(uid_pattern, wav_path.parts[-1])
-        uid = x.group(1)
-        nohash = x.group(2)
-    
+        try:
+            x = re.match(uid_pattern, wav_path.parts[-1])
+            uid = x.group(1)
+            nohash = x.group(2)
+        except:
+            import ipdb; ipdb.set_trace()
+            
     return pd.Series({"absolute path": wav_path.absolute(),
                       "label": label,
                       "uid": uid,
@@ -65,12 +68,15 @@ def extract_file_info(audio_path):
 
 
 if __name__ == '__main__':
-    augment_path = "data/augment"
+    version = config.AUG_VERSION
+    augment_path = Path("data/augment")/version
     aug_dirs = augment_path.glob('*')
 
     for aug_dir in aug_dirs:
         aug_dir_path = Path(aug_dir)
         print(aug_dir)
         aug_type = aug_dir_path.parts[-1]
-        train_file_info = extract_file_info(aug_dir)
-        train_file_info.to_csv("data/{}_file_info.csv".format(aug_type))
+        finfo = extract_file_info(aug_dir)
+        dump_path = "data/{}_file_info_version_{}.csv".format(aug_type,
+                                                              version)
+        finfo.to_csv(dump_path)

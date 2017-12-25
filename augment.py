@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import scipy.signal as signal
 import librosa
+import soundfile as sf
 import config
 import utils
 import generator
@@ -25,6 +26,16 @@ def pitch_shift(wav, pitch):
     return wav
 
 
+def zero_padding_random(wav, sample_rate):
+    rem_len = sample_rate - len(wav)
+    j = np.random.randint(0, rem_len)
+
+    wav = np.pad(wav,
+                 (j, rem_len - j),
+                 "constant")
+    return wav
+
+
 def shift(wav, shift):
     shifted = np.zeros_like(wav)
     if shift >= 0:
@@ -41,9 +52,10 @@ def strech(wav, rate=1):
     input_length = 16000
     wav = librosa.effects.time_stretch(wav, rate)
     if len(wav) > input_length:
-        wav = wav[:input_length]
+        start = np.random.randint(len(wav) - input_length)
+        wav = wav[start:input_length-start]
     else:
-        wav = np.pad(wav, (0, max(0, input_length - len(wav))), "constant")
+        wav = zero_padding_random(wav, config.SAMPLE_RATE)
         
     return wav
 
@@ -109,21 +121,6 @@ def zero_padding(wav, sample_rate):
     return wav
 
 
-def zero_padding_random(wav, sample_rate):
-    """zero padding start and end with random split
-    >>> wav = [1, 2, 3]
-    >>> wav_padded = zero_padding_random(wav, 5)
-    >>> wav_padded = [0, 1, 2, 3, 0]
-    """
-    rem_len = sample_rate - len(wav)
-    j = np.random.randint(0, rem_len)
-
-    wav = np.pad(wav,
-                 (j, rem_len - j),
-                 "constant")
-    return wav
-
-
 def clip_random(wav, sample_rate):
     if len(wav) <= sample_rate:
         raise("wav length is shorter than one sec.")
@@ -160,8 +157,11 @@ class Augment():
         pitch_up = utils.rand_decorator("pitch",
                                         start=config.PITCH_MIN,
                                         end=config.PITCH_MAX)(pitch_shift)
-        
-        add_wn = partial(add_whitenoise, rate=config.ADD_WHITENOISE_MAX)
+
+        add_wn = utils.rand_decorator("rate",
+                                      start=config.ADD_WN_MIN,
+                                      end=config.ADD_WN_MAX)(add_whitenoise)
+
         patch_bg = partial(patch_bg_random, sample_rate=config.SAMPLE_RATE,
                            bgn=bgn)
         mix_bgn = partial(mix_bgn_wav, bgn=bgn, mix_rate=config.MIX_BGN_RATE)
@@ -209,16 +209,16 @@ class Augment():
         dir_path.mkdir(parents=True, exist_ok=True)
 
         def aug_file(path, aug, out_path):
-            wav = generator.process_wav_file(path,
-                                             self.bgn,
-                                             aug,
-                                             self)
+            wav = generator.process_wav_file(path)
+            wav = self.abbrev_func_map[aug](wav)
+            
             fname = Path(path).parts[-1]
             label = Path(path).parts[-2]
             Path(out_path/aug/label).mkdir(parents=True, exist_ok=True)
-            librosa.output.write_wav(out_path/aug/label/fname,
-                                     wav,
-                                     config.SAMPLE_RATE)
+            sf.write(str(out_path/aug/label/fname),
+                     wav,
+                     config.SAMPLE_RATE,
+                     subtype='PCM_16')
                 
         for aug in config.AUG_LIST:
             print(aug)
@@ -240,12 +240,7 @@ if __name__ == "__main__":
 
     aug_class = Augment(bgn_data, config.AUG_LIST)
 
-    # print('train augmentation')
-    # aug_class.dump(train_paths, directory)
+    print('train augmentation')
+    aug_class.dump(train_paths, directory)
     print('silence augmentation')
     aug_class.dump(silence_paths, directory)
-
-    readme = "silence_data is {}".format(sdata)
-    with open(Path("./data/augment/" + directory), 'w') as f:
-        f.write(readme)
-

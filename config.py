@@ -28,17 +28,19 @@ SPEED_MAX = 0.3
 SPEED_MIN = 0.1
 PITCH_MAX = 4
 PITCH_MIN = 3
-ADD_WHITENOISE_MIN = 0.01
-ADD_WHITENOISE_MAX = 0.1
+ADD_WN_MIN = 0.005
+ADD_WN_MAX = 0.01
 MIX_BGN_RATE = 0.3
 MIX_BGN_MAX = 0.5
 LP_MIN = 2000
 LP_MAX = 7999
 
-AUG_LIST = ["shift_forward",
-            "shift_backward",
+# AUG_LIST = ["add_wn"]
+AUG_LIST = ["speed_down",
             "speed_up",
-            "speed_down",
+            "shift_forward",
+            "shift_backward",
             "pitch_up",
             "mix_random",
             "add_wn"]
+AUG_VERSION = "2017_12_25_00_55_41"

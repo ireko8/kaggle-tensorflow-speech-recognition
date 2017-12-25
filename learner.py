@@ -3,6 +3,7 @@ from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras.callbacks import ReduceLROnPlateau
 from tensorflow.python.keras.callbacks import CSVLogger
 import utils
+import config
 
 
 class Learner():
@@ -45,8 +46,8 @@ class Learner():
                           CSVLogger(self.csv_log_path)]
 
     def learn(self, train_generator, valid_generator, validation_steps,
-              steps_per_epoch=344,
-              epochs=40):
+              steps_per_epoch,
+              epochs=config.EPOCHS):
         history = self.model.fit_generator(generator=train_generator,
                                            steps_per_epoch=steps_per_epoch,
                                            epochs=epochs,

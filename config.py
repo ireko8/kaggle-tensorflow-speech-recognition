@@ -14,9 +14,11 @@ POSSIBLE_LABELS = ['yes',
                    'silence',
                    'unknown']
 TEST_AUDIO_PATH = "input/test/audio"
-SILECE_DATA_PATH = "data/silence"
+SILENCE_DATA_PATH = "data/silence"
+SILENCE_DATA_VERSION = "2017_12_08_15_41_26"
 
 BATCH_SIZE = 64
+EPOCHS = 10
 
 SAMPLE_RATE = 16000
 

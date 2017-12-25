@@ -50,41 +50,10 @@ class VGG1D():
         x_in = Input(shape=input_shape)
         x = BatchNormalization()(x_in)
         for i in range(6):
-            x = Conv1D(8*(2 ** i), 4,
-                       strides=2,
-                       padding="same")(x)
-            x = Activation("relu")(x)
-            x = BatchNormalization()(x)
-            x = MaxPooling1D(2, padding="same")(x)
-        x_branch_1 = GlobalAveragePooling1D()(x)
-        x_branch_2 = GlobalMaxPool1D()(x)
-        x = concatenate([x_branch_1, x_branch_2])
-        x = Dense(1024, activation='relu')(x)
-        x = Dropout(0.2)(x)
-        x = Dense(len(config.POSSIBLE_LABELS), activation='softmax')(x)
-        model = Model(inputs=x_in, outputs=x)
-        model.compile(optimizer='rmsprop',
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
-
-        self.model = model
-
-
-class Dilated1D():
-    """1d dilated convolution model
-    """
-    def __init__(self, name="Dilated1D"):
-        self.name = name
-
-    def model_init(self, input_shape=(config.SAMPLE_RATE, 1)):
-        x_in = Input(shape=input_shape)
-        x = BatchNormalization()(x_in)
-        for i in range(6):
             x = Conv1D(8*(2 ** i), 16,
                        strides=2,
                        padding="same")(x)
             x = PReLU()(x)
-            # x = Activation("relu")(x)
             x = BatchNormalization()(x)
             x = MaxPooling1D(2, padding="same")(x)
         x_branch_1 = GlobalAveragePooling1D()(x)
@@ -99,4 +68,3 @@ class Dilated1D():
                       metrics=['accuracy'])
 
         self.model = model
-

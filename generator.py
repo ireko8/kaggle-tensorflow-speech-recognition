@@ -43,7 +43,6 @@ def wav_to_spct(wav, sample_rate=config.SAMPLE_RATE):
 
 def batch_generator(input_df, batch_size, category_num,
                     bgn_paths,
-                    aug_processes=None,
                     mode='train',
                     sampling_size=2000):
 
@@ -57,6 +56,7 @@ def batch_generator(input_df, batch_size, category_num,
             base_df = grouped.apply(lambda x: x.sample(n=sampling_size))
             base_df_id = random.sample(range(base_df.shape[0]),
                                        base_df.shape[0])
+            # print("base_df shape: ", base_df.shape)
         else:
             base_df = input_df
             base_df_id = list(range(input_df.shape[0]))

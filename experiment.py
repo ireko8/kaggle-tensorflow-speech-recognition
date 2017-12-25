@@ -224,7 +224,7 @@ def cross_validation(estimator,
 if __name__ == "__main__":
     utils.set_seed(2017)
 
-    cnn = model.VGG1D()
+    cnn = model.Dilated1D()
     silence_data_version = "2017_12_08_15_41_26"
     cv_version = utils.now()
     validation(silence_data_version,
@@ -232,4 +232,5 @@ if __name__ == "__main__":
                config.AUG_LIST,
                config.AUG_VERSION,
                sample_size=2000)
-    # res = cross_validation(cnn, silence_data_version, cv_version)
+    # res = cross_validation(cnn, silence_data_version, cv_version,
+    #                        config.AUG_VERSION)

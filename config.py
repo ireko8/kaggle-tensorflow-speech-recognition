@@ -18,7 +18,7 @@ SILENCE_DATA_PATH = "data/silence"
 SILENCE_DATA_VERSION = "2017_12_08_15_41_26"
 
 BATCH_SIZE = 64
-EPOCHS = 10
+EPOCHS = 50
 
 SAMPLE_RATE = 16000
 
@@ -37,13 +37,12 @@ MIX_BGN_MAX = 0.5
 LP_MIN = 2000
 LP_MAX = 7999
 
-AUG_LIST = []
-# AUG_LIST = ["speed_down",
-#             "speed_up",
-#             "shift_forward",
-#             "shift_backward",
-#             "pitch_up",
-#             "mix_random",
-#             "add_wn"]
+AUG_LIST = ["speed_down",
+            "speed_up",
+            "shift_forward",
+            "shift_backward",
+            "pitch_up",
+            "mix_random",
+            "add_wn"]
 AUG_VERSION = "2017_12_25_00_55_41"
 AUG_PATH = "data/augment/"

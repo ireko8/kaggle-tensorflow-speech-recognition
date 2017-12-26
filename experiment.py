@@ -200,9 +200,9 @@ def cross_validation(estimator_name,
 
         # info of dataset
         print('{:>10},{:>10},{:>10},{:>10}'.format("type",
-                                               "train_size",
-                                               "valid_size",
-                                               "test_size"))
+                                                   "train_size",
+                                                   "valid_size",
+                                                   "test_size"))
         print('train', len(train), len(valid), len(test))
         print('silence',
               len(silence_train),

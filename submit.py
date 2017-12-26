@@ -34,10 +34,12 @@ def ensemble(estimator, cv_path, test_paths, silence_paths, sub_path):
     cv_models = Path(cv_path).glob("*.hdf5")
     ensemble_probas = list()
     
-    for estimator_weight_path in cv_models:
+    for i, estimator_weight_path in enumerate(cv_models):
+        print("fold {} predict".format(i))
         estimator.model.load_weights(estimator_weight_path)
         predict_probs = predict(test_paths, silence_paths, estimator)
         ensemble_probas.append(predict_probs)
+        print("done")
 
     return ensemble_probas
 
@@ -52,31 +54,36 @@ if __name__ == '__main__':
     cnn = model.VGG1D()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    cnn.model.load_weights("model/VGG1D/2017_12_24_16_46_51.hdf5")
-    # cv_path = "cv/STFTCNN/2017_12_13_14_55_05"
-    # sub_path = Path("sub/STFTCNN")/version
-    # sub_path.mkdir(parents=True, exist_ok=True)
+    cv_version = "2017_12_26_01_02_58_VGG1D_augmented"
+    cv_path = "cv/{}/{}".format(cnn.name, cv_version)
+    sub_path = Path("sub/{}".format(cnn.name))/version
+    sub_path.mkdir(parents=True, exist_ok=True)
 
-    # ensemble_probs = ensemble(cnn,
-    #                           cv_path,
-    #                           test_paths,
-    #                           silence_paths,
-    #                           sub_path)
+    print("ensemble start")
+    ensemble_probs = ensemble(cnn,
+                              cv_path,
+                              test_paths,
+                              silence_paths,
+                              sub_path)
+    print("done")
+    
+    test_fname = test_paths["path"].apply(lambda x: Path(x).parts[-1])
 
-    # test_fname = test_paths["path"].apply(lambda x: Path(x).parts[-1])
+    print("dump cv probs")
+    for fold, probs in enumerate(ensemble_probs):
+        print("fold {}".format(fold))
+        sub_fold_plobs = pd.DataFrame(probs,
+                                      columns=config.POSSIBLE_LABELS)
+        sub_fold_plobs_df = pd.concat([test_fname, sub_fold_plobs], axis=1)
+        sub_fold_plobs_df.to_csv(sub_path/"{}_probs.csv".format(fold),
+                                 index=False)
 
-    # for fold, probs in enumerate(ensemble_probs):
-    #     sub_fold_plobs = pd.DataFrame(probs,
-    #                                   columns=config.POSSIBLE_LABELS)
-    #     sub_fold_plobs_df = pd.concat([test_fname, sub_fold_plobs], axis=1)
-    #     sub_fold_plobs_df.to_csv(sub_path/"{}_probs.csv".format(fold),
-    #                              index=False)
-
-    predict_probs = predict(test_paths, silence_paths, cnn)
+    predict_probs = np.array(ensemble_probs).mean(axis=0)
     predict_cls = np.argmax(predict_probs, axis=1)
 
     submission = dict()
 
+    print("make submission")
     for i in range(len(test_paths)):
         fname = Path(test_paths.iloc[i][0]).parts[-1]
         label = id2name[predict_cls[i]]
@@ -86,3 +93,5 @@ if __name__ == '__main__':
         fout.write('fname,label\n')
         for fname, label in submission.items():
             fout.write('{},{}\n'.format(fname, label))
+
+    print("done")

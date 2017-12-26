@@ -140,7 +140,7 @@ def cross_validation(estimator_name,
                      aug_version,
                      aug_list,
                      n_splits=5,
-                     sample_size=1800,
+                     base_sample_size=1800,
                      batch_size=64,
                      silence_train_size=1800):
     
@@ -186,7 +186,6 @@ def cross_validation(estimator_name,
         train = pd.concat([train, silence_train])
 
         valid = augment_data_load(valid, config.AUG_LIST, aug_version)
-
         sid_valid_len = int(len(other_sid)/2)
         silence_valid_id = other_sid[:sid_valid_len]
         silence_valid = silence_data.iloc[silence_valid_id]
@@ -195,8 +194,13 @@ def cross_validation(estimator_name,
                                           aug_version)
         valid = pd.concat([valid, silence_valid])
 
-        test_silence = other_sid[sid_valid_len:]
-        test = pd.concat([test, silence_data.iloc[test_silence]])
+        test = augment_data_load(test, config.AUG_LIST, aug_version)
+        test_silence_id = other_sid[sid_valid_len:]
+        silence_test = silence_data.iloc[test_silence_id]
+        silence_test = augment_data_load(silence_test,
+                                         config.AUG_LIST,
+                                         aug_version)
+        test = pd.concat([test, silence_test])
 
         # info of dataset
         print('{:>10},{:>10},{:>10},{:>10}'.format("type",
@@ -215,7 +219,7 @@ def cross_validation(estimator_name,
         print("test label dist")
         print(test.possible_label.value_counts())
 
-        sample_size = sample_size*(len(aug_list) + 1)
+        sample_size = base_sample_size*(len(aug_list) + 1)
         print('augmentation types', len(aug_list), sample_size)
 
         label_dist = train.possible_label.value_counts()

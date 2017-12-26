@@ -53,9 +53,11 @@ def strech(wav, rate=1):
     wav = librosa.effects.time_stretch(wav, rate)
     if len(wav) > input_length:
         start = np.random.randint(len(wav) - input_length)
-        wav = wav[start:input_length-start]
+        wav = wav[start:input_length+start]
     else:
         wav = zero_padding_random(wav, config.SAMPLE_RATE)
+
+    assert(len(wav) == config.SAMPLE_RATE)
         
     return wav
 
@@ -134,6 +136,7 @@ class Augment():
     def __init__(self, bgn, augment_list):
         self.bgn = bgn
 
+        self.augment_list = augment_list
         self.augment_df = pd.DataFrame(augment_list, columns=["aug_name"])
 
         vol_up = partial(change_volume, rate=config.VOLUME_UP)
@@ -148,11 +151,12 @@ class Augment():
                                               integer=True)(shift)
 
         speed_up = utils.rand_decorator("rate",
-                                        start=1+config.SPEED_MIN,
-                                        end=1+config.SPEED_MAX)(strech)
+                                        start=config.SPEED_UP_MIN,
+                                        end=config.SPEED_UP_MAX)(strech)
+
         speed_down = utils.rand_decorator("rate",
-                                          start=1-config.SPEED_MAX,
-                                          end=1-config.SPEED_MAX)(strech)
+                                          start=config.SPEED_DOWN_MIN,
+                                          end=config.SPEED_DOWN_MAX)(strech)
 
         pitch_up = utils.rand_decorator("pitch",
                                         start=config.PITCH_MIN,
@@ -161,6 +165,9 @@ class Augment():
         add_wn = utils.rand_decorator("rate",
                                       start=config.ADD_WN_MIN,
                                       end=config.ADD_WN_MAX)(add_whitenoise)
+        add_wn2 = utils.rand_decorator("rate",
+                                       start=0.1,
+                                       end=0.5)(add_whitenoise)
 
         patch_bg = partial(patch_bg_random, sample_rate=config.SAMPLE_RATE,
                            bgn=bgn)
@@ -194,6 +201,7 @@ class Augment():
                            "speed_down": speed_down,
                            "pitch_up": pitch_up,
                            "add_wn": add_wn,
+                           "add_wn2": add_wn2,
                            "patch_bg": patch_bg,
                            "mix_bgn": mix_bgn,
                            "mix_random": mix_random,
@@ -220,7 +228,7 @@ class Augment():
                      config.SAMPLE_RATE,
                      subtype='PCM_16')
                 
-        for aug in config.AUG_LIST:
+        for aug in self.augment_list:
             print(aug)
             paths.path.apply(lambda x: aug_file(x, aug, dir_path))
 
@@ -238,7 +246,7 @@ if __name__ == "__main__":
 
     directory = utils.now()
 
-    aug_class = Augment(bgn_data, config.AUG_LIST)
+    aug_class = Augment(bgn_data, ["vol_up", "vol_down"])
 
     print('train augmentation')
     aug_class.dump(train_paths, directory)

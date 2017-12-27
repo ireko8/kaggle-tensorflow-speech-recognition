@@ -236,7 +236,7 @@ class Augment():
 if __name__ == "__main__":
     utils.set_seed(2017)
     
-    sdata = "2017_12_08_15_41_26"
+    sdata = config.SILENCE_DATA_VERSION
     train_paths, bgn_paths, silence_paths = experiment.data_load(sdata)
     print(train_paths.columns)
 
@@ -246,7 +246,7 @@ if __name__ == "__main__":
 
     directory = utils.now()
 
-    aug_class = Augment(bgn_data, ["vol_up", "vol_down"])
+    aug_class = Augment(bgn_data, ["mix_random"])
 
     print('train augmentation')
     aug_class.dump(train_paths, directory)

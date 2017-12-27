@@ -1,16 +1,15 @@
 import random
 import numpy as np
 import scipy.signal as signal
+from scipy.io import wavfile
 from tensorflow.python.keras.utils import to_categorical
-import librosa
 import augment
 import config
-import utils
 
 
 def read_wav_file(fname):
-    wav, sample_rate = librosa.core.load(fname,
-                                         sr=config.SAMPLE_RATE)
+    sample_rate, wav = wavfile.read(fname)
+    wav = wav.astype(np.float32)/np.iinfo(np.int16).max
     return sample_rate, wav
 
 
@@ -48,15 +47,18 @@ def batch_generator(input_df, batch_size, category_num,
 
     def preprocess(path):
         wav = process_wav_file(path)
-        return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
+        return wav_to_spct(wav)
+        # return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
         
     while True:
         if mode == 'train':
-            grouped = input_df.groupby('plnum')
-            base_df = grouped.apply(lambda x: x.sample(n=sampling_size))
+            #grouped = input_df.groupby('plnum')
+            #base_df = grouped.apply(lambda x: x.sample(n=sampling_size))
+            base_df = input_df
             base_df_id = random.sample(range(base_df.shape[0]),
                                        base_df.shape[0])
             # print("base_df shape: ", base_df.shape)
+            
         else:
             base_df = input_df
             base_df_id = list(range(input_df.shape[0]))

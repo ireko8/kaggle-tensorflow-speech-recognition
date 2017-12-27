@@ -2,6 +2,7 @@ from pathlib import Path
 from tensorflow.python.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.python.keras.callbacks import ReduceLROnPlateau
 from tensorflow.python.keras.callbacks import CSVLogger
+from keras_tqdm import TQDMCallback
 import utils
 import config
 
@@ -43,7 +44,8 @@ class Learner():
                                           save_best_only=True,
                                           save_weights_only=True,
                                           mode='min'),
-                          CSVLogger(self.csv_log_path)]
+                          CSVLogger(self.csv_log_path),
+                          TQDMCallback()]
 
     def learn(self, train_generator, valid_generator, validation_steps,
               steps_per_epoch,
@@ -51,6 +53,7 @@ class Learner():
         history = self.model.fit_generator(generator=train_generator,
                                            steps_per_epoch=steps_per_epoch,
                                            epochs=epochs,
+                                           verbose=0,
                                            callbacks=self.callbacks,
                                            validation_data=valid_generator,
                                            validation_steps=validation_steps)

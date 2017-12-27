@@ -1,6 +1,6 @@
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import Input, Conv2D, MaxPooling2D
-from tensorflow.python.keras.layers import Conv1D, MaxPooling1D, LeakyReLU
+from tensorflow.python.keras.layers import Conv1D, MaxPooling1D
 from tensorflow.python.keras.layers import Activation, BatchNormalization
 from tensorflow.python.keras.layers import GlobalAveragePooling2D
 from tensorflow.python.keras.layers import GlobalAveragePooling1D, PReLU

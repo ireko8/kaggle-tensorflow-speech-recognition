@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
+from tqdm import tqdm
 import config
 import generator
 import learner
@@ -25,7 +26,7 @@ def extract_fname(path):
 
 def augment_data_load(paths, augs, version):
     flist = paths.path.apply(extract_fname)
-    for aug in augs:
+    for aug in tqdm(augs, desc='Aug data import'):
         print("load file info of {}".format(aug))
         aug_path = "{}_file_info_version_{}.csv".format(aug,
                                                         version)
@@ -39,7 +40,6 @@ def augment_data_load(paths, augs, version):
         augment_file_info = augment_file_info[augment_file_info.fn.isin(flist)]
         augment_file_info = augment_file_info.drop("fn", axis=1)
         paths = pd.concat([paths, augment_file_info])
-        print("done")
 
     print(paths.shape)
     return paths
@@ -105,7 +105,11 @@ def validation(silence_data_version,
     file_df, bg_paths, silence_df = data_load(silence_data_version)
 
     train_df = file_df[~file_df.is_valid]
+    grouped = train_df.groupby('plnum')
+    train_df = grouped.apply(lambda x: x.sample(n=sample_size))
     valid_df = file_df[file_df.is_valid]
+
+    assert(set(train_df.uid) & set(valid_df.uid) == set())
 
     silence_train = silence_df.iloc[:silence_train_size]
     silence_valid = silence_df.iloc[silence_train_size:]
@@ -114,10 +118,10 @@ def validation(silence_data_version,
     print("train")
     train_df = augment_data_load(train_df, augment_list, aug_version)
     print("valid")
-    # valid_df = augment_data_load(valid_df, augment_list, aug_version)
+    valid_df = augment_data_load(valid_df, augment_list, aug_version)
     print("silence_data")
     silence_train = augment_data_load(silence_train, augment_list, aug_version)
-    # silence_valid = augment_data_load(silence_valid, augment_list, aug_version)
+    silence_valid = augment_data_load(silence_valid, augment_list, aug_version)
     print("done")
 
     train_df = pd.concat([train_df, silence_train])
@@ -125,7 +129,6 @@ def validation(silence_data_version,
     sample_size = sample_size*(len(augment_list) + 1)
 
     assert(len(train_df.plnum.unique()) == len(config.POSSIBLE_LABELS))
-    assert(set(train_df.uid) & set(valid_df.uid) == set())
 
     print("data load done")
     estimator.model_init()
@@ -235,6 +238,9 @@ def cross_validation(estimator_name,
         if estimator_name == "VGG1D":
             estimator = model.VGG1D()
             estimator.model_init()
+        if estimator_name == "STFTCNN":
+            estimator = model.STFTCNN()
+            estimator.model_init()
 
         print("learning start")
         print("-"*40)
@@ -273,13 +279,14 @@ if __name__ == "__main__":
 
     cv_version = "{time}_{model}_augmented".format(**{'time': utils.now(),
                                                       'model': "VGG1D"})
-    # validation(config.SILECE_DATA_VERSION,
-    #            cnn,
-    #            config.AUG_LIST,
-    #            config.AUG_VERSION,
-    #            sample_size=2000)
-    res = cross_validation("VGG1D",
-                           config.SILENCE_DATA_VERSION,
-                           cv_version,
-                           config.AUG_VERSION,
-                           config.AUG_LIST)
+    cnn = model.VGG1D()
+    validation(config.SILENCE_DATA_VERSION,
+               cnn,
+               config.AUG_LIST,
+               config.AUG_VERSION,
+               sample_size=2000)
+    # res = cross_validation("STFTCNN",
+    #                        config.SILENCE_DATA_VERSION,
+    #                        cv_version,
+    #                        config.AUG_VERSION,
+    #                        config.AUG_LIST)

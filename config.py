@@ -15,7 +15,7 @@ POSSIBLE_LABELS = ['yes',
                    'unknown']
 TEST_AUDIO_PATH = "input/test/audio"
 SILENCE_DATA_PATH = "data/silence"
-SILENCE_DATA_VERSION = "2017_12_08_15_41_26"
+SILENCE_DATA_VERSION = "2017_12_27_15_07_15"
 
 BATCH_SIZE = 64
 EPOCHS = 50
@@ -34,19 +34,20 @@ PITCH_MAX = 4
 PITCH_MIN = 3
 ADD_WN_MIN = 0.005
 ADD_WN_MAX = 0.01
-MIX_BGN_RATE = 0.2
-MIX_BGN_MAX = 0.3
+MIX_BGN_RATE = 0.1
+MIX_BGN_MAX = 0.2
 LP_MIN = 2000
 LP_MAX = 7999
 
-AUG_LIST = ["vol_up",
-            "vol_down",
-            "speed_down",
-            "speed_up",
-            "shift_forward",
-            "shift_backward",
-            "pitch_up",
-            "mix_random",
-            "add_wn"]
+AUG_LIST = []
+# AUG_LIST = ["vol_up",
+#             "vol_down",
+#             "speed_down",
+#             "speed_up",
+#             "shift_forward",
+#             "shift_backward",
+#             "pitch_up",
+#             "mix_random",
+#             "add_wn"]
 AUG_VERSION = "2017_12_25_00_55_41"
 AUG_PATH = "data/augment/"

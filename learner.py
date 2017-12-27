@@ -44,8 +44,7 @@ class Learner():
                                           save_best_only=True,
                                           save_weights_only=True,
                                           mode='min'),
-                          CSVLogger(self.csv_log_path),
-                          TQDMCallback()]
+                          CSVLogger(self.csv_log_path)]
 
     def learn(self, train_generator, valid_generator, validation_steps,
               steps_per_epoch,
@@ -53,7 +52,7 @@ class Learner():
         history = self.model.fit_generator(generator=train_generator,
                                            steps_per_epoch=steps_per_epoch,
                                            epochs=epochs,
-                                           verbose=0,
+                                           verbose=1,
                                            callbacks=self.callbacks,
                                            validation_data=valid_generator,
                                            validation_steps=validation_steps)

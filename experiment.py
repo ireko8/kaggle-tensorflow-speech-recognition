@@ -21,11 +21,19 @@ Todo:
 
 
 def extract_fname(path):
-    return Path(path).parts[-1]
+    p = Path(path)
+    return p.parts[-2] + '/' + p.parts[-1]
+
+
+def sample_rows(df, sample_size):
+    grouped = df.groupby('plnum')
+    df = grouped.apply(lambda x: x.sample(n=sample_size))
+    return df
 
 
 def augment_data_load(paths, augs, version):
     flist = paths.path.apply(extract_fname)
+    print(len(flist))
     for aug in tqdm(augs, desc='Aug data import'):
         print("load file info of {}".format(aug))
         aug_path = "{}_file_info_version_{}.csv".format(aug,
@@ -39,6 +47,7 @@ def augment_data_load(paths, augs, version):
         augment_file_info["fn"] = augment_file_info.path.apply(extract_fname)
         augment_file_info = augment_file_info[augment_file_info.fn.isin(flist)]
         augment_file_info = augment_file_info.drop("fn", axis=1)
+        print(augment_file_info.shape)
         paths = pd.concat([paths, augment_file_info])
 
     print(paths.shape)
@@ -105,14 +114,15 @@ def validation(silence_data_version,
     file_df, bg_paths, silence_df = data_load(silence_data_version)
 
     train_df = file_df[~file_df.is_valid]
-    grouped = train_df.groupby('plnum')
-    train_df = grouped.apply(lambda x: x.sample(n=sample_size))
+    train_df = sample_rows(train_df, sample_size)
     valid_df = file_df[file_df.is_valid]
+    valid_df = sample_rows(valid_df, 200)
 
+    print(len(train_df), len(valid_df))
     assert(set(train_df.uid) & set(valid_df.uid) == set())
 
     silence_train = silence_df.iloc[:silence_train_size]
-    silence_valid = silence_df.iloc[silence_train_size:]
+    silence_valid = silence_df.iloc[silence_train_size:silence_train_size+200]
 
     print("load augmentation")
     print("train")

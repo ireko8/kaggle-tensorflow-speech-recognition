@@ -47,8 +47,8 @@ def batch_generator(input_df, batch_size, category_num,
 
     def preprocess(path):
         wav = process_wav_file(path)
-        return wav_to_spct(wav)
-        # return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
+        # return wav_to_spct(wav)
+        return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
         
     while True:
         if mode == 'train':

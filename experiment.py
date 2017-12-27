@@ -211,7 +211,7 @@ def cross_validation(estimator_name,
         print('silence',
               len(silence_train),
               len(silence_valid),
-              len(test_silence))
+              len(silence_test))
         print("train label dist")
         print(train.possible_label.value_counts())
         print("valid label dist")

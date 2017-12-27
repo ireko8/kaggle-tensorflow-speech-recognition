@@ -34,12 +34,14 @@ PITCH_MAX = 4
 PITCH_MIN = 3
 ADD_WN_MIN = 0.005
 ADD_WN_MAX = 0.01
-MIX_BGN_RATE = 0.3
-MIX_BGN_MAX = 0.5
+MIX_BGN_RATE = 0.2
+MIX_BGN_MAX = 0.3
 LP_MIN = 2000
 LP_MAX = 7999
 
-AUG_LIST = ["speed_down",
+AUG_LIST = ["vol_up",
+            "vol_down",
+            "speed_down",
             "speed_up",
             "shift_forward",
             "shift_backward",

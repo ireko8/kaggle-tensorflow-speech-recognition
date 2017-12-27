@@ -54,7 +54,7 @@ if __name__ == '__main__':
     cnn = model.VGG1D()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    cv_version = "2017_12_26_17_36_24_VGG1D_augmented"
+    cv_version = "2017_12_27_03_58_13_VGG1D_augmented"
     cv_path = "cv/{}/{}".format(cnn.name, cv_version)
     sub_path = Path("sub/{}".format(cnn.name))/version
     sub_path.mkdir(parents=True, exist_ok=True)

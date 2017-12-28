@@ -35,7 +35,7 @@ def augment_data_load(paths, augs, version):
     flist = paths.path.apply(extract_fname)
     print(len(flist))
     for aug in tqdm(augs, desc='Aug data import'):
-        print("load file info of {}".format(aug))
+        # print("load file info of {}".format(aug))
         aug_path = "{}_file_info_version_{}.csv".format(aug,
                                                         version)
         augment_file_info = pd.read_csv(Path("data/")/aug_path)
@@ -47,7 +47,7 @@ def augment_data_load(paths, augs, version):
         augment_file_info["fn"] = augment_file_info.path.apply(extract_fname)
         augment_file_info = augment_file_info[augment_file_info.fn.isin(flist)]
         augment_file_info = augment_file_info.drop("fn", axis=1)
-        print(augment_file_info.shape)
+        # print(augment_file_info.shape)
         paths = pd.concat([paths, augment_file_info])
 
     print(paths.shape)

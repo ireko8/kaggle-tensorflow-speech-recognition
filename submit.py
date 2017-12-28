@@ -54,7 +54,7 @@ if __name__ == '__main__':
     cnn = model.VGG1D()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    cnn.model.load_weights("model/VGG1D/2017_12_28_02_20_33.hdf5")
+    cnn.model.load_weights("model/VGG1D/2017_12_28_11_53_17.hdf5")
     # cv_version = "2017_12_27_16_17_09_VGG1D_augmented"
     
     # cv_path = "cv/{}/{}".format(cnn.name, cv_version)

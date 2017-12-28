@@ -44,8 +44,6 @@ AUG_LIST = ["speed_down",
             "speed_up",
             "shift_forward",
             "shift_backward",
-            "pitch_up",
-            "mix_random",
-            "add_wn"]
+            "pitch_up"]
 AUG_VERSION = "2017_12_25_00_55_41"
 AUG_PATH = "data/augment/"

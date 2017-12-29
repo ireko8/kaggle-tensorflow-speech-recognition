@@ -22,7 +22,6 @@ def predict(test_paths, silence_paths, estimator):
     test_generator = generator.batch_generator(test_paths,
                                                batch_size,
                                                len(config.POSSIBLE_LABELS),
-                                               silence_paths,
                                                mode='test')
 
     steps = int(np.ceil(len(test_paths)/batch_size))
@@ -54,8 +53,8 @@ if __name__ == '__main__':
     cnn = model.VGG1D()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    cnn.model.load_weights("model/VGG1D/2017_12_28_11_53_17.hdf5")
-    # cv_version = "2017_12_27_16_17_09_VGG1D_augmented"
+    cnn.model.load_weights("model/VGG1D/2017_12_29_14_20_57.hdf5")
+    # cv_version = "2017_12_28_20_35_45_VGG1D_augmented"
     
     # cv_path = "cv/{}/{}".format(cnn.name, cv_version)
     # sub_path = Path("sub/{}".format(cnn.name))/version

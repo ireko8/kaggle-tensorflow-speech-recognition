@@ -68,7 +68,7 @@ def extract_file_info(audio_path):
 
 
 if __name__ == '__main__':
-    version = config.AUG_VERSION
+    version = "2017_12_28_20_04_03"
     augment_path = Path("data/augment")/version
     # aug_dirs = ["mix_random2"]
     aug_dirs = augment_path.glob('*')

@@ -240,13 +240,13 @@ if __name__ == "__main__":
     train_paths, bgn_paths, silence_paths = experiment.data_load(sdata)
     print(train_paths.columns)
 
-    bgn_paths = bgn_paths[~bgn_paths.path.str.contains("white")]
+    # bgn_paths = bgn_paths[~bgn_paths.path.str.contains("white")]
     bgn_data = [generator.read_wav_file(x)[1] for x in bgn_paths.path]
     bgn_data = np.concatenate(bgn_data)
 
     directory = utils.now()
 
-    aug_class = Augment(bgn_data, ["mix_random"])
+    aug_class = Augment(bgn_data, config.AUG_LIST)
 
     print('train augmentation')
     aug_class.dump(train_paths, directory)

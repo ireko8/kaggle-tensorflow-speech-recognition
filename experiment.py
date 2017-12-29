@@ -82,15 +82,11 @@ def experiment(estimator,
     label_num = len(config.POSSIBLE_LABELS)
     train_generator = generator.batch_generator(train_df,
                                                 batch_size,
-                                                label_num,
-                                                bg_paths,
-                                                sampling_size=sample_size)
+                                                label_num)
     valid_generator = generator.batch_generator(valid_df,
                                                 batch_size,
                                                 label_num,
-                                                bg_paths,
-                                                mode='valid',
-                                                sampling_size=sample_size)
+                                                mode='valid')
     data_size = sample_size*label_num
     valid_steps = int(np.ceil(valid_df.shape[0]/batch_size))
     steps_per_epoch = int(np.ceil(data_size/batch_size))
@@ -147,6 +143,51 @@ def validation(silence_data_version,
     return result
 
 
+def infinite_ensemble(silence_data_version,
+                      estimator,
+                      augment_list,
+                      aug_version,
+                      sample_size=2000,
+                      batch_size=config.BATCH_SIZE,
+                      silence_train_size=2000):
+    print("experiment(validation type) start")
+    file_df, bg_paths, silence_df = data_load(silence_data_version)
+    file_df = file_df.drop("is_valid", axis=1)
+
+    train_df = file_df[~file_df.is_valid]
+    train_df = sample_rows(train_df, sample_size)
+    valid_df = file_df[file_df.is_valid]
+    valid_df = sample_rows(valid_df, 200)
+
+    print(len(train_df), len(valid_df))
+    assert(set(train_df.uid) & set(valid_df.uid) == set())
+
+    silence_train = silence_df.iloc[:silence_train_size]
+    silence_valid = silence_df.iloc[silence_train_size:silence_train_size+200]
+
+    print("load augmentation")
+    print("train")
+    train_df = augment_data_load(train_df, augment_list, aug_version)
+    print("valid")
+    valid_df = augment_data_load(valid_df, augment_list, aug_version)
+    print("silence_data")
+    silence_train = augment_data_load(silence_train, augment_list, aug_version)
+    silence_valid = augment_data_load(silence_valid, augment_list, aug_version)
+    print("done")
+
+    train_df = pd.concat([train_df, silence_train])
+    valid_df = pd.concat([valid_df, silence_valid])
+    sample_size = sample_size*(len(augment_list) + 1)
+
+    assert(len(train_df.plnum.unique()) == len(config.POSSIBLE_LABELS))
+
+    print("data load done")
+    estimator.model_init()
+    result = experiment(estimator, train_df, valid_df, bg_paths,
+                        batch_size, sample_size, augment_list)
+    return result    
+
+
 def cross_validation(estimator_name,
                      silence_data_version,
                      cv_version,
@@ -154,6 +195,8 @@ def cross_validation(estimator_name,
                      aug_list,
                      n_splits=5,
                      base_sample_size=1800,
+                     base_valid_size=250,
+                     base_test_size=100,
                      batch_size=64,
                      silence_train_size=1800):
     
@@ -183,8 +226,11 @@ def cross_validation(estimator_name,
         test_uid = uid_list[other_id[id_valid_len:]]
 
         train = file_df[file_df.uid.isin(train_uid)]
+        train = sample_rows(train, base_sample_size)
         valid = file_df[file_df.uid.isin(valid_uid)]
+        valid = sample_rows(valid, base_valid_size)
         test = file_df[file_df.uid.isin(test_uid)]
+        test = sample_rows(test, base_test_size)
 
         # quick check for proper validation
         assert(set(train.uid) & set(valid.uid) == set())
@@ -193,6 +239,7 @@ def cross_validation(estimator_name,
 
         train = augment_data_load(train, config.AUG_LIST, aug_version)
         silence_train = silence_data.iloc[train_sid]
+        silence_train = sample_rows(silence_train, base_sample_size)
         silence_train = augment_data_load(silence_train,
                                           config.AUG_LIST,
                                           aug_version)
@@ -202,6 +249,7 @@ def cross_validation(estimator_name,
         sid_valid_len = int(len(other_sid)/2)
         silence_valid_id = other_sid[:sid_valid_len]
         silence_valid = silence_data.iloc[silence_valid_id]
+        silence_valid = sample_rows(silence_valid, base_valid_size)
         silence_valid = augment_data_load(silence_valid,
                                           config.AUG_LIST,
                                           aug_version)
@@ -210,6 +258,7 @@ def cross_validation(estimator_name,
         test = augment_data_load(test, config.AUG_LIST, aug_version)
         test_silence_id = other_sid[sid_valid_len:]
         silence_test = silence_data.iloc[test_silence_id]
+        silence_test = sample_rows(silence_test, base_test_size)
         silence_test = augment_data_load(silence_test,
                                          config.AUG_LIST,
                                          aug_version)
@@ -295,7 +344,7 @@ if __name__ == "__main__":
                config.AUG_LIST,
                config.AUG_VERSION,
                sample_size=2000)
-    # res = cross_validation("STFTCNN",
+    # res = cross_validation("VGG1D",
     #                        config.SILENCE_DATA_VERSION,
     #                        cv_version,
     #                        config.AUG_VERSION,

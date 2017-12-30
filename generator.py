@@ -50,8 +50,11 @@ def batch_generator(input_df, batch_size, category_num,
 
     while True:
         base_df = input_df
-        base_df_id = random.sample(range(base_df.shape[0]),
-                                   base_df.shape[0])
+        if mode == "train":
+            base_df_id = random.sample(range(base_df.shape[0]),
+                                       base_df.shape[0])
+        else:
+            base_df_id = list(range(base_df.shape[0]))
 
         for start in range(0, len(base_df), batch_size):
             end = min(start + batch_size, len(base_df))

@@ -1,6 +1,6 @@
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import Input, Conv2D, MaxPooling2D
-from tensorflow.python.keras.layers import Conv1D, MaxPooling1D
+from tensorflow.python.keras.layers import Conv1D, MaxPooling1D, Add
 from tensorflow.python.keras.layers import Activation, BatchNormalization
 from tensorflow.python.keras.layers import GlobalAveragePooling2D
 from tensorflow.python.keras.layers import GlobalAveragePooling1D, PReLU
@@ -53,11 +53,69 @@ class VGG1D():
             x = Conv1D(8*(2 ** i), 16,
                        strides=2,
                        padding="same")(x)
-            x = PReLU()(x)
+            x = Activation("relu")(x)
             x = BatchNormalization()(x)
             x = MaxPooling1D(2, padding="same")(x)
 
         x = Conv1D(8*(2 ** 5), 4,
+                   strides=1,
+                   padding="same")(x)
+
+        x_branch_1 = GlobalAveragePooling1D()(x)
+        x_branch_2 = GlobalMaxPool1D()(x)
+        x = concatenate([x_branch_1, x_branch_2])
+        x = Dense(1024, activation='relu')(x)
+        x = Dropout(0.2)(x)
+        x = Dense(len(config.POSSIBLE_LABELS), activation='softmax')(x)
+        model = Model(inputs=x_in, outputs=x)
+        model.compile(optimizer='rmsprop',
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
+
+        self.model = model
+
+
+class VGG1Dv2():
+    """1d VGG16 like convolution model
+    """
+    def __init__(self, name="VGG1Dv2"):
+        self.name = name
+
+    def model_init(self, input_shape=(config.SAMPLE_RATE, 1)):
+        x_in = Input(shape=input_shape)
+        x = BatchNormalization()(x_in)
+        for i in range(6):
+            if i <= 3:
+                ks = 16
+                ks2 = 8
+                st = 2
+                st2 = 1
+            else:
+                ks = 8
+                ks2 = 8
+                st = 1
+                st2 = 1
+            x = Conv1D(2**(i+3), ks,
+                       strides=st,
+                       padding="same")(x)
+            x = Activation("relu")(x)
+            x = BatchNormalization()(x)
+            x = Conv1D(2**(i+3), ks2,
+                       strides=st2,
+                       padding="same")(x)
+            x = Activation("relu")(x)
+            x = BatchNormalization()(x)
+
+            if i >= 4:
+                x = Conv1D(2**(i+3), ks2,
+                           strides=st2,
+                           padding="same")(x)
+                x = Activation("relu")(x)
+                x = BatchNormalization()(x)
+
+            x = MaxPooling1D(2, padding="same")(x)
+
+        x = Conv1D(2**9, 4,
                    strides=1,
                    padding="same")(x)
 

@@ -20,9 +20,12 @@ Todo:
 """
 
 
-def extract_fname(path):
+def extract_fname(path, silence):
     p = Path(path)
-    return p.parts[-2] + '/' + p.parts[-1]
+    if silence:
+        return p.parts[-1]
+    else:
+        return p.parts[-2] + '/' + p.parts[-1]
 
 
 def sample_rows(df, sample_size):
@@ -31,9 +34,14 @@ def sample_rows(df, sample_size):
     return df
 
 
-def augment_data_load(paths, augs, version):
-    flist = paths.path.apply(extract_fname)
+def augment_data_load(paths, augs, version, silence=False):
+
+    def extract_fn(x):
+        return extract_fname(x, silence)
+
+    flist = paths.path.apply(extract_fn)
     print(len(flist))
+    
     for aug in tqdm(augs, desc='Aug data import'):
         # print("load file info of {}".format(aug))
         aug_path = "{}_file_info_version_{}.csv".format(aug,
@@ -44,10 +52,10 @@ def augment_data_load(paths, augs, version):
                                                "possible_label",
                                                "plnum",
                                                "is_valid"]]
-        augment_file_info["fn"] = augment_file_info.path.apply(extract_fname)
+        augment_file_info["fn"] = augment_file_info.path.apply(extract_fn)
         augment_file_info = augment_file_info[augment_file_info.fn.isin(flist)]
         augment_file_info = augment_file_info.drop("fn", axis=1)
-        # print(augment_file_info.shape)
+        # print(augment_file_info.shape)        
         paths = pd.concat([paths, augment_file_info])
 
     print(paths.shape)
@@ -107,6 +115,10 @@ def validation(silence_data_version,
                batch_size=config.BATCH_SIZE,
                silence_train_size=2000):
     print("experiment(validation type) start")
+
+    version_path = Path("model")/estimator.name/utils.now()
+    version_path.mkdir(parents=True, exist_ok=True)
+    
     file_df, bg_paths, silence_df = data_load(silence_data_version)
 
     train_df = file_df[~file_df.is_valid]
@@ -126,8 +138,10 @@ def validation(silence_data_version,
     print("valid")
     valid_df = augment_data_load(valid_df, augment_list, aug_version)
     print("silence_data")
-    silence_train = augment_data_load(silence_train, augment_list, aug_version)
-    silence_valid = augment_data_load(silence_valid, augment_list, aug_version)
+    silence_train = augment_data_load(silence_train, augment_list, aug_version,
+                                      silence=True)
+    silence_valid = augment_data_load(silence_valid, augment_list, aug_version,
+                                      silence=True)
     print("done")
 
     train_df = pd.concat([train_df, silence_train])
@@ -138,54 +152,26 @@ def validation(silence_data_version,
 
     print("data load done")
     estimator.model_init()
+    struct_json = estimator.model.to_json()
+    with open(version_path/"model.json", "w") as fp:
+        fp.write(struct_json)
+    
     result = experiment(estimator, train_df, valid_df, bg_paths,
-                        batch_size, sample_size, augment_list)
+                        batch_size, sample_size, augment_list,
+                        version_path=str(version_path/"weights.hdf5"),
+                        csv_log_path=str(version_path/"epoch_log.csv"))
+    predict_valid_probs = submit.predict(valid_df,
+                                         bg_paths,
+                                         estimator)
+    valid_plobs = pd.DataFrame(predict_valid_probs,
+                               columns=config.POSSIBLE_LABELS)
+    valid_df.index = range(len(valid_df))
+    valid_plobs_df = pd.concat([valid_df, valid_plobs], axis=1)
+
+    valid_plobs_df.to_csv(version_path/"valid_probs.csv",
+                          index=False)
+    
     return result
-
-
-def infinite_ensemble(silence_data_version,
-                      estimator,
-                      augment_list,
-                      aug_version,
-                      sample_size=2000,
-                      batch_size=config.BATCH_SIZE,
-                      silence_train_size=2000):
-    print("experiment(validation type) start")
-    file_df, bg_paths, silence_df = data_load(silence_data_version)
-    file_df = file_df.drop("is_valid", axis=1)
-
-    train_df = file_df[~file_df.is_valid]
-    train_df = sample_rows(train_df, sample_size)
-    valid_df = file_df[file_df.is_valid]
-    valid_df = sample_rows(valid_df, 200)
-
-    print(len(train_df), len(valid_df))
-    assert(set(train_df.uid) & set(valid_df.uid) == set())
-
-    silence_train = silence_df.iloc[:silence_train_size]
-    silence_valid = silence_df.iloc[silence_train_size:silence_train_size+200]
-
-    print("load augmentation")
-    print("train")
-    train_df = augment_data_load(train_df, augment_list, aug_version)
-    print("valid")
-    valid_df = augment_data_load(valid_df, augment_list, aug_version)
-    print("silence_data")
-    silence_train = augment_data_load(silence_train, augment_list, aug_version)
-    silence_valid = augment_data_load(silence_valid, augment_list, aug_version)
-    print("done")
-
-    train_df = pd.concat([train_df, silence_train])
-    valid_df = pd.concat([valid_df, silence_valid])
-    sample_size = sample_size*(len(augment_list) + 1)
-
-    assert(len(train_df.plnum.unique()) == len(config.POSSIBLE_LABELS))
-
-    print("data load done")
-    estimator.model_init()
-    result = experiment(estimator, train_df, valid_df, bg_paths,
-                        batch_size, sample_size, augment_list)
-    return result    
 
 
 def cross_validation(estimator_name,
@@ -338,7 +324,7 @@ if __name__ == "__main__":
 
     cv_version = "{time}_{model}_augmented".format(**{'time': utils.now(),
                                                       'model': "VGG1D"})
-    cnn = model.VGG1D()
+    cnn = model.VGG1Dv2()
     validation(config.SILENCE_DATA_VERSION,
                cnn,
                config.AUG_LIST,

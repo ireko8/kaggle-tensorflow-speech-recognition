@@ -326,7 +326,7 @@ def cross_validation(estimator_name,
 
 
 if __name__ == "__main__":
-    seed = 3017
+    seed = 4017
     utils.set_seed(seed)
 
     cv_version = "{time}_{model}_{seed}_augmented".format(**{'time': utils.now(),

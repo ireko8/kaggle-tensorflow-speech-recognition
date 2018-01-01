@@ -4,12 +4,19 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import config
 
 
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     tf.set_random_seed(seed)
+
+
+def id_to_label(ids):
+    id2name = dict(zip(range(len(config.POSSIBLE_LABELS)),
+                       config.POSSIBLE_LABELS))
+    return ids.apply(lambda x: id2name[x])
 
 
 def now():

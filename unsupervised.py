@@ -19,7 +19,9 @@ class AutoEncoder1D():
 
     def model_init(self, input_shape=(config.SAMPLE_RATE, 1)):
         x_in = Input(shape=input_shape)
+        x = Conv1D(1, 1, padding="same")(x)
         x = BatchNormalization()(x_in)
+        x = MaxPooling1D(2)(x)
         for i in range(3):
             x = Conv1D(8*(2 ** (3-i)), 4,
                        dilation_rate=2**i,

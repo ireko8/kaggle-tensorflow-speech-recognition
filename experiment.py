@@ -180,9 +180,10 @@ def cross_validation(estimator_name,
                      aug_version,
                      aug_list,
                      n_splits=5,
-                     base_sample_size=1800,
-                     base_valid_size=250,
-                     base_test_size=100,
+                     base_valid_split = 0.9,
+                     base_sample_size=1600,
+                     base_valid_size=50,
+                     base_test_size=200,
                      batch_size=64,
                      silence_train_size=1800):
     
@@ -206,10 +207,10 @@ def cross_validation(estimator_name,
     for i, ((train_id, other_id), (train_sid, other_sid)) in enumerate(kfold):
         print("fold {} start".format(i))
         print("-"*80)
-        train_uid = uid_list[train_id]
-        id_valid_len = int(len(other_id)/2)
-        valid_uid = uid_list[other_id[:id_valid_len]]
-        test_uid = uid_list[other_id[id_valid_len:]]
+        id_valid_len = int(len(train_id)*base_valid_split)
+        train_uid = uid_list[train_id[:id_valid_len]]
+        valid_uid = uid_list[train_id[id_valid_len:]]
+        test_uid = uid_list[other_id]
 
         train = file_df[file_df.uid.isin(train_uid)]
         train = sample_rows(train, base_sample_size)
@@ -224,30 +225,32 @@ def cross_validation(estimator_name,
         assert(set(valid.uid) & set(test.uid) == set())
 
         train = augment_data_load(train, config.AUG_LIST, aug_version)
-        silence_train = silence_data.iloc[train_sid]
+        sid_valid_len = int(len(train_sid)*base_valid_split)
+        silence_train = silence_data.iloc[train_sid[:sid_valid_len]]
         silence_train = sample_rows(silence_train, base_sample_size)
         silence_train = augment_data_load(silence_train,
                                           config.AUG_LIST,
-                                          aug_version)
+                                          aug_version,
+                                          silence=True)
         train = pd.concat([train, silence_train])
 
         valid = augment_data_load(valid, config.AUG_LIST, aug_version)
-        sid_valid_len = int(len(other_sid)/2)
-        silence_valid_id = other_sid[:sid_valid_len]
-        silence_valid = silence_data.iloc[silence_valid_id]
+        silence_valid = silence_data.iloc[train_sid[sid_valid_len:]]
         silence_valid = sample_rows(silence_valid, base_valid_size)
         silence_valid = augment_data_load(silence_valid,
                                           config.AUG_LIST,
-                                          aug_version)
+                                          aug_version,
+                                          silence=True)
         valid = pd.concat([valid, silence_valid])
 
         test = augment_data_load(test, config.AUG_LIST, aug_version)
-        test_silence_id = other_sid[sid_valid_len:]
+        test_silence_id = other_sid
         silence_test = silence_data.iloc[test_silence_id]
         silence_test = sample_rows(silence_test, base_test_size)
         silence_test = augment_data_load(silence_test,
                                          config.AUG_LIST,
-                                         aug_version)
+                                         aug_version,
+                                         silence=True)
         test = pd.concat([test, silence_test])
 
         # info of dataset
@@ -282,6 +285,9 @@ def cross_validation(estimator_name,
         # TODO: refactor architecture of model module (VGG1D, STFTCNN)
         if estimator_name == "VGG1D":
             estimator = model.VGG1D()
+            estimator.model_init()
+        if estimator_name == "VGG1Dv2":
+            estimator = model.VGG1Dv2()
             estimator.model_init()
         if estimator_name == "STFTCNN":
             estimator = model.STFTCNN()
@@ -320,18 +326,20 @@ def cross_validation(estimator_name,
 
 
 if __name__ == "__main__":
-    utils.set_seed(2017)
+    seed = 3017
+    utils.set_seed(seed)
 
-    cv_version = "{time}_{model}_augmented".format(**{'time': utils.now(),
-                                                      'model': "VGG1D"})
+    cv_version = "{time}_{model}_{seed}_augmented".format(**{'time': utils.now(),
+                                                             'model': "VGG1Dv2",
+                                                             'seed': seed})
     cnn = model.VGG1Dv2()
-    validation(config.SILENCE_DATA_VERSION,
-               cnn,
-               config.AUG_LIST,
-               config.AUG_VERSION,
-               sample_size=2000)
-    # res = cross_validation("VGG1D",
-    #                        config.SILENCE_DATA_VERSION,
-    #                        cv_version,
-    #                        config.AUG_VERSION,
-    #                        config.AUG_LIST)
+    # validation(config.SILENCE_DATA_VERSION,
+    #            cnn,
+    #            config.AUG_LIST,
+    #            config.AUG_VERSION,
+    #            sample_size=2000)
+    res = cross_validation("VGG1Dv2",
+                           config.SILENCE_DATA_VERSION,
+                           cv_version,
+                           config.AUG_VERSION,
+                           config.AUG_LIST)

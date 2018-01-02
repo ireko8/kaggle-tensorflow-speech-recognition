@@ -18,7 +18,7 @@ def test_data_load():
 
 
 def predict(test_paths, silence_paths, estimator):
-    batch_size = 64
+    batch_size = config.BATCH_SIZE
     test_generator = generator.batch_generator(test_paths,
                                                batch_size,
                                                len(config.POSSIBLE_LABELS),
@@ -50,11 +50,11 @@ if __name__ == '__main__':
     id2name = dict(zip(range(len(config.POSSIBLE_LABELS)),
                        config.POSSIBLE_LABELS))
     
-    cnn = model.VGG1Dv2()
+    cnn = model.STFTCNN()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
     # cnn.model.load_weights("model/VGG1Dv2/2017_12_30_12_47_43/weights.hdf5")
-    cv_version = "2018_01_02_00_00_47_VGG1Dv2_4017_augmented"
+    cv_version = "2018_01_02_02_41_33_STFTCNN_4017_augmented"
     
     cv_path = "cv/{}/{}".format(cnn.name, cv_version)
     sub_path = Path("sub/{}".format(cnn.name))/version

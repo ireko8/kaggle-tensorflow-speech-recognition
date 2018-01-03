@@ -5,6 +5,7 @@ from scipy.io import wavfile
 from tensorflow.python.keras.utils import to_categorical
 import augment
 import config
+import utils
 
 
 def read_wav_file(fname):
@@ -13,13 +14,20 @@ def read_wav_file(fname):
     return sample_rate, wav
 
 
-def process_wav_file(fname):
+def process_wav_file(fname,
+                     aug_name=None,
+                     aug_class=None,
+                     bgn=None):
     sample_rate, wav = read_wav_file(fname)
 
     if len(wav) > sample_rate:
         wav = augment.clip_random(wav, sample_rate)
     elif len(wav) < sample_rate:
         wav = augment.zero_padding_random(wav, sample_rate)
+
+    if aug_name:
+        wav = aug_class.abbrev_func_map[aug_name](wav)
+        wav = np.clip(wav, -1, 1)
 
     return wav
 
@@ -41,16 +49,32 @@ def wav_to_spct(wav, sample_rate=config.SAMPLE_RATE):
 
 
 def batch_generator(input_df, batch_size, category_num,
+                    online_aug=False,
+                    aug_list=None,
+                    bgn_paths=None,
                     mode='train'):
+    
+    if online_aug:
+        bgn_data = [read_wav_file(x)[1] for x in bgn_paths.path]
+        bgn_data = np.concatenate(bgn_data)
+        aug_class = augment.Augment(bgn_data, aug_list)
+
+    def online_aug_preprocess(row):
+        wav = process_wav_file(row.path, row.aug_name, aug_class, bgn_data)
+        return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
 
     def preprocess(path):
         wav = process_wav_file(path)
-        return wav_to_spct(wav)
-        # return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
+        # return wav_to_spct(wav)
+        return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
 
     while True:
         base_df = input_df
         if mode == "train":
+            if online_aug:
+                base_df = utils.cartesian_product(base_df,
+                                                  aug_class.augment_df)
+
             base_df_id = random.sample(range(base_df.shape[0]),
                                        base_df.shape[0])
         else:
@@ -61,7 +85,12 @@ def batch_generator(input_df, batch_size, category_num,
             batch_df_id = base_df_id[start:end]
             batch_df = base_df.iloc[batch_df_id]
 
-            x_batch = batch_df.path.apply(preprocess).values
+            if online_aug:
+                x_batch = batch_df.apply(online_aug_preprocess,
+                                         axis=1).values
+            else:
+                x_batch = batch_df.path.apply(preprocess).values
+            
             x_batch = np.concatenate(x_batch)
 
             if mode != 'test':

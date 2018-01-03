@@ -84,17 +84,22 @@ def experiment(estimator,
                batch_size,
                sample_size,
                augment_list,
+               online_aug=False,
                version_path=None,
                csv_log_path=None):
     
     label_num = len(config.POSSIBLE_LABELS)
     train_generator = generator.batch_generator(train_df,
                                                 batch_size,
-                                                label_num)
+                                                label_num,
+                                                online_aug=online_aug,
+                                                bgn_paths=bg_paths,
+                                                aug_list=augment_list)
     valid_generator = generator.batch_generator(valid_df,
                                                 batch_size,
                                                 label_num,
                                                 mode='valid')
+
     data_size = sample_size*label_num
     valid_steps = int(np.ceil(valid_df.shape[0]/batch_size))
     steps_per_epoch = int(np.ceil(data_size/batch_size))
@@ -111,6 +116,7 @@ def validation(silence_data_version,
                estimator,
                augment_list,
                aug_version,
+               train_online_aug=False,
                sample_size=2000,
                batch_size=config.BATCH_SIZE,
                silence_train_size=2000):
@@ -134,12 +140,16 @@ def validation(silence_data_version,
 
     print("load augmentation")
     print("train")
-    train_df = augment_data_load(train_df, augment_list, aug_version)
+    if not train_online_aug:
+        train_df = augment_data_load(train_df, augment_list, aug_version)
     print("valid")
     valid_df = augment_data_load(valid_df, augment_list, aug_version)
     print("silence_data")
-    silence_train = augment_data_load(silence_train, augment_list, aug_version,
-                                      silence=True)
+    if not train_online_aug:
+        silence_train = augment_data_load(silence_train,
+                                          augment_list,
+                                          aug_version,
+                                          silence=True)
     silence_valid = augment_data_load(silence_valid, augment_list, aug_version,
                                       silence=True)
     print("done")
@@ -158,6 +168,7 @@ def validation(silence_data_version,
     
     result = experiment(estimator, train_df, valid_df, bg_paths,
                         batch_size, sample_size, augment_list,
+                        online_aug=train_online_aug,
                         version_path=str(version_path/"weights.hdf5"),
                         csv_log_path=str(version_path/"epoch_log.csv"))
     predict_valid_probs = submit.predict(valid_df,
@@ -329,17 +340,18 @@ if __name__ == "__main__":
     seed = 2017
     utils.set_seed(seed)
 
-    cv_version = "{time}_{model}_{seed}_augmented".format(**{'time': utils.now(),
-                                                             'model': "STFTCNN",
-                                                             'seed': seed})
-    cnn = model.STFTCNN()
-    # validation(config.SILENCE_DATA_VERSION,
-    #            cnn,
-    #            config.AUG_LIST,
-    #            config.AUG_VERSION,
-    #            sample_size=2000)
-    res = cross_validation("STFTCNN",
-                           config.SILENCE_DATA_VERSION,
-                           cv_version,
-                           config.AUG_VERSION,
-                           config.AUG_LIST)
+    cv_version = "{time}_{model}_{seed}_online".format(**{'time': utils.now(),
+                                                          'model': "STFTCNN",
+                                                          'seed': seed})
+    cnn = model.VGG1Dv2()
+    validation(config.SILENCE_DATA_VERSION,
+               cnn,
+               config.AUG_LIST,
+               config.AUG_VERSION,
+               train_online_aug=True,
+               sample_size=2000)
+    # res = cross_validation("STFTCNN",
+    #                        config.SILENCE_DATA_VERSION,
+    #                        cv_version,
+    #                        config.AUG_VERSION,
+    #                        config.AUG_LIST)

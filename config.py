@@ -40,8 +40,7 @@ LP_MIN = 2000
 LP_MAX = 7999
 
 # AUG_LIST = []
-AUG_LIST = ["shift_forward",
-            "mix_random",
+AUG_LIST = ["mix_random",
             "pitch_up",
             "speed_up"]
             

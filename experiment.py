@@ -308,6 +308,7 @@ def cross_validation(estimator_name,
         print("-"*40)
         res_fold = experiment(estimator, train, valid, bg_paths,
                               batch_size, sample_size, aug_list,
+                              online_aug=False,
                               version_path=fold_dump_path,
                               csv_log_path=csv_log_path)
         print("-"*40)
@@ -341,17 +342,17 @@ if __name__ == "__main__":
     utils.set_seed(seed)
 
     cv_version = "{time}_{model}_{seed}_online".format(**{'time': utils.now(),
-                                                          'model': "STFTCNN",
+                                                          'model': "VGG1Dv2",
                                                           'seed': seed})
-    cnn = model.VGG1Dv2()
-    validation(config.SILENCE_DATA_VERSION,
-               cnn,
-               config.AUG_LIST,
-               config.AUG_VERSION,
-               train_online_aug=False,
-               sample_size=2000)
-    # res = cross_validation("STFTCNN",
-    #                        config.SILENCE_DATA_VERSION,
-    #                        cv_version,
-    #                        config.AUG_VERSION,
-    #                        config.AUG_LIST)
+    # cnn = model.VGG1Dv2()
+    # validation(config.SILENCE_DATA_VERSION,
+    #            cnn,
+    #            config.AUG_LIST,
+    #            config.AUG_VERSION,
+    #            train_online_aug=False,
+    #            sample_size=2000)
+    res = cross_validation("VGG1Dv2",
+                           config.SILENCE_DATA_VERSION,
+                           cv_version,
+                           config.AUG_VERSION,
+                           config.AUG_LIST)

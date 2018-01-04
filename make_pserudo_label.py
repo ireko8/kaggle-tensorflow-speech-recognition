@@ -5,7 +5,14 @@ import utils
 import config
 
 
-def make_pseudo_labeling(cv_version, fname, threshold=0.9,
+def convert_aug_path(row, aug, test_aug_version):
+    fname = Path(row.path).parts[-1]
+    aug_path = test_aug_version/aug/fname
+    return [[aug_path, row.plnum, row.label]]
+
+
+def make_pseudo_labeling(cv_version, fold,
+                         threshold=0.9,
                          num_fold=5):
     pseudo_dir = Path('data/pseudo_label/{}'.format(cv_version))
     pseudo_dir.mkdir(exist_ok=True, parents=True)
@@ -14,17 +21,14 @@ def make_pseudo_labeling(cv_version, fname, threshold=0.9,
     test_paths = pd.DataFrame(test_paths, columns=["path"])
     test_flist = test_paths.path.apply(lambda x: x.parts[-1])
 
-    for i in range(num_fold):
-        pseudo_fold_dir = pseudo_dir/"fold_{}".format(i)
-        pseudo_fold_dir.mkdir(parents=True)
-        cv_res = []
+    cv_res = []
     
-        for j in range(num_fold):
-            if i != j:
-                res = pd.read_csv("sub/{}/{}_probs.csv".format(cv_version,
-                                                                  i))
-                assert(test_flist == res.path)
-                cv_res.append(res.iloc[-12:])
+    for i in range(num_fold):
+        if i != fold:
+            res = pd.read_csv("sub/{}/{}_probs.csv".format(cv_version,
+                                                           i))
+            assert(test_flist == res.path)
+            cv_res.append(res.iloc[-12:])
 
         cv_probs = np.array(cv_res)
         cv_mean = np.mean(cv_probs, axis=0)
@@ -32,5 +36,24 @@ def make_pseudo_labeling(cv_version, fname, threshold=0.9,
         max_probs = pd.Series(np.max(cv_mean, axis=1), name="max_probs")
         pseudo_label = pd.concat([test_paths, pseudo_plnum, max_probs], axis=1)
         pseudo_label["label"] = utils.id_to_label(pseudo_label)
-        pseudo_label.to_csv(pseudo_fold_dir/fname)
+        pseudo_label = pseudo_label[pseudo_label.max_probs >= threshold]
+        pseudo_label = pseudo_label.drop("max_probs", axis=1)
+        return pseudo_label
+
+
+def make_pseudo_augment(pseudo_label, aug_list, test_aug_version):
+
+    augmented_df = [pseudo_label]
+    for aug in aug_list:
+
+        def convert_path(row):
+            return convert_aug_path(row, aug, test_aug_version)
+        
+        pseudo_aug = pseudo_label.apply(convert_path, axis=1)
+        pseudo_aug = pd.DataFrame(pseudo_aug, columns=["path",
+                                                       "plnum",
+                                                       "label"])
+        augmented_df.append(pseudo_aug)
+
+    return pd.concat(augmented_df)
 

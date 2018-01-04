@@ -40,6 +40,10 @@ def zero_padding_random(wav, sample_rate):
 
 def shift(wav, shift):
     shifted = np.zeros_like(wav)
+    while shift == 0:
+        shift = np.random.randint(config.SHIFT_MIN,
+                                  config.SHIFT_MAX)
+        
     if shift >= 0:
         shifted[shift:] += wav[:-shift]
     else:
@@ -240,21 +244,21 @@ if __name__ == "__main__":
     utils.set_seed(2017)
     
     sdata = config.SILENCE_DATA_VERSION
-    # train_paths, bgn_paths, silence_paths = experiment.data_load(sdata)
-    test_paths, bgn_paths = submit.test_data_load()
+    train_paths, bgn_paths, silence_paths = experiment.data_load(sdata)
+    # test_paths, bgn_paths = submit.test_data_load()
 
     # bgn_paths = bgn_paths[~bgn_paths.path.str.contains("white")]
     bgn_data = [generator.read_wav_file(x)[1] for x in bgn_paths.path]
     bgn_data = np.concatenate(bgn_data)
 
-    directory = "{}_test_augment".format(utils.now())
+    directory = "{}".format(utils.now())
 
     aug_class = Augment(bgn_data, config.AUG_LIST)
 
-    print('test augmentation')
-    aug_class.dump(test_paths, directory)
+    # print('test augmentation')
+    # aug_class.dump(test_paths, directory)
     
-    # print('train augmentation')
-    # aug_class.dump(train_paths, directory)
-    # print('silence augmentation')
-    # aug_class.dump(silence_paths, directory)
+    print('train augmentation')
+    aug_class.dump(train_paths, directory)
+    print('silence augmentation')
+    aug_class.dump(silence_paths, directory)

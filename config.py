@@ -24,8 +24,8 @@ SAMPLE_RATE = 16000
 
 VOLUME_UP = 1.2
 VOLUME_DOWN = 0.8
-SHIFT_MAX = int(SAMPLE_RATE*0.2)
-SHIFT_MIN = int(SAMPLE_RATE*0.1)
+SHIFT_MAX = int(SAMPLE_RATE*0.15)
+SHIFT_MIN = -int(SAMPLE_RATE*0.15)
 SPEED_UP_MAX = 1.15
 SPEED_UP_MIN = 0.85
 SPEED_DOWN_MAX = 0.9
@@ -40,9 +40,10 @@ LP_MIN = 2000
 LP_MAX = 7999
 
 # AUG_LIST = []
-AUG_LIST = ["speed_up",
+AUG_LIST = ["shift_forward",
+            "mix_random",
             "pitch_up",
-            "mix_random"]
+            "speed_up"]
             
 AUG_VERSION = "2017_12_28_20_04_03"
 AUG_PATH = "data/augment/"

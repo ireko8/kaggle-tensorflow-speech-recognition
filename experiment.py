@@ -348,7 +348,7 @@ if __name__ == "__main__":
                cnn,
                config.AUG_LIST,
                config.AUG_VERSION,
-               train_online_aug=True,
+               train_online_aug=False,
                sample_size=2000)
     # res = cross_validation("STFTCNN",
     #                        config.SILENCE_DATA_VERSION,

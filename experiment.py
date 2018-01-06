@@ -10,6 +10,7 @@ import learner
 import model
 import utils
 import submit
+from make_pseudo_label import make_pseudo_labeling, make_pseudo_augment
 
 """
 Experiment and Cross Validation Script for local data.
@@ -185,6 +186,129 @@ def validation(silence_data_version,
     return result
 
 
+def cv_ensemble(estimator_name,
+                silence_data_version,
+                cv_version,
+                aug_version,
+                aug_list,
+                n_splits=5,
+                valid_undersampling=True,
+                base_sample_size=1800,
+                base_valid_size=400,
+                pseudo_cv_version=None,
+                test_aug_version=None,
+                pseudo_label_size=0.5,
+                batch_size=config.BATCH_SIZE):
+    """cross_validation ensemble with silence_data
+    without testing
+    """
+
+    version_path = Path("cv/")/estimator_name/cv_version
+    version_path.mkdir(parents=True, exist_ok=True)
+    file_df, bg_paths, silence_data = data_load(silence_data_version)
+    file_df = file_df.drop(["is_valid"], axis=1)
+
+    uid_list = file_df.uid.unique()
+    kfold_data = KFold(n_splits=n_splits, shuffle=True).split(uid_list)
+    kfold_silence = KFold(n_splits=n_splits, shuffle=True).split(silence_data)
+    kfold = zip(kfold_data, kfold_silence)
+    result = list()
+
+    for i, ((train_id, other_id), (train_sid, other_sid)) in enumerate(kfold):
+        print("fold {} start".format(i))
+        print("-"*80)
+        train_uid = uid_list[train_id]
+        valid_uid = uid_list[other_id]
+
+        train = file_df[file_df.uid.isin(train_uid)]
+        train = sample_rows(train, base_sample_size)
+        valid = file_df[file_df.uid.isin(valid_uid)]
+        if valid_undersampling:
+            valid = sample_rows(valid, base_valid_size)
+
+        # quick check for proper validation
+        assert(set(train.uid) & set(valid.uid) == set())
+
+        train = augment_data_load(train, config.AUG_LIST, aug_version)
+        silence_train = silence_data.iloc[train_sid]
+        silence_train = sample_rows(silence_train, base_sample_size)
+        silence_train = augment_data_load(silence_train,
+                                          config.AUG_LIST,
+                                          aug_version,
+                                          silence=True)
+        train = pd.concat([train, silence_train])
+        if pseudo_cv_version:
+            pseudo_label = make_pseudo_labeling(pseudo_cv_version,
+                                                i)
+            pseudo_size = int(base_sample_size*pseudo_label_size)
+            pseudo_label = sample_rows(pseudo_label, pseudo_size)
+            if test_aug_version:
+                pseudo_label = make_pseudo_augment(pseudo_label,
+                                                   config.AUG_LIST,
+                                                   test_aug_version)
+            train = pd.concat([train, pseudo_label])
+
+        valid = augment_data_load(valid, config.AUG_LIST, aug_version)
+        silence_valid = silence_data.iloc[other_sid]
+        if valid_undersampling:
+            silence_valid = sample_rows(silence_valid, base_valid_size)
+        silence_valid = augment_data_load(silence_valid,
+                                          config.AUG_LIST,
+                                          aug_version,
+                                          silence=True)
+        valid = pd.concat([valid, silence_valid])
+
+        # info of dataset
+        print('{:>10},{:>10},{:>10}'.format("type",
+                                            "train_size",
+                                            "valid_size"))
+        print('train', len(train), len(valid))
+        print('silence',
+              len(silence_train),
+              len(silence_valid))
+        print("train label dist")
+        print(train.possible_label.value_counts())
+        print("valid label dist")
+        print(valid.possible_label.value_counts())
+
+        sample_size = base_sample_size*(len(aug_list) + 1)
+        print('augmentation types', len(aug_list), sample_size)
+
+        label_dist = train.possible_label.value_counts()
+        label_dist.to_csv(version_path/"fold_{}_train_ldist".format(i))
+
+        label_dist = valid.possible_label.value_counts()
+        label_dist.to_csv(version_path/"fold_{}_valid_ldist".format(i))
+        
+        fold_dump_path = str(version_path / "fold_{}.hdf5".format(i))
+        csv_log_path = str(version_path / "fold_{}_log.csv".format(i))
+
+        # TODO: refactor architecture of model module (VGG1D, STFTCNN)
+        if estimator_name == "VGG1D":
+            estimator = model.VGG1D()
+            estimator.model_init()
+        if estimator_name == "VGG1Dv2":
+            estimator = model.VGG1Dv2()
+            estimator.model_init()
+        if estimator_name == "STFTCNN":
+            estimator = model.STFTCNN()
+            estimator.model_init()
+
+        print("learning start")
+        print("-"*40)
+        res_fold = experiment(estimator, train, valid, bg_paths,
+                              batch_size, sample_size, aug_list,
+                              online_aug=False,
+                              version_path=fold_dump_path,
+                              csv_log_path=csv_log_path)
+        print("-"*40)
+        print("done")
+
+        result.append(res_fold)
+
+    return result
+
+
 def cross_validation(estimator_name,
                      silence_data_version,
                      cv_version,
@@ -351,8 +475,10 @@ if __name__ == "__main__":
     #            config.AUG_VERSION,
     #            train_online_aug=False,
     #            sample_size=2000)
-    res = cross_validation("VGG1Dv2",
-                           config.SILENCE_DATA_VERSION,
-                           cv_version,
-                           config.AUG_VERSION,
-                           config.AUG_LIST)
+    res = cv_ensemble("VGG1Dv2",
+                      config.SILENCE_DATA_VERSION,
+                      cv_version,
+                      config.AUG_VERSION,
+                      config.AUG_LIST,
+                      pseudo_cv_version="VGG1Dv2/2018_01_05_13_57_50/",
+                      test_aug_version="2018_01_02_22_20_44_test_augment")

@@ -1,5 +1,9 @@
+from pathlib import Path
 import numpy as np
 import config
+import utils
+import soundfile as sf
+from tqdm import tqdm
 
 
 """
@@ -31,7 +35,8 @@ def _gen_colored_noise(spectral_shape):
 def gen_noise(color, volume):
     
     assert(config.SAMPLE_RATE % 2 == 0)
-    assert(volume >= -1 & volume <= 1)
+    assert((volume >= 0) & (volume <= 1))
+    spectrum_len = config.SAMPLE_RATE // 2 + 1
     
     if color == 'white':
         # flat in frequency
@@ -40,9 +45,7 @@ def gen_noise(color, volume):
         # with std = 1 many samples will be outside +1/-1
         noise = np.random.normal(size=config.SAMPLE_RATE)
 
-    spectrum_len = config.SAMPLE_RATE // 2 + 1
-
-    if color == 'pink':
+    elif color == 'pink':
         noise = _gen_colored_noise(1./(np.sqrt(np.arange(spectrum_len)+1.)))
     
     elif color == 'blue':
@@ -58,3 +61,24 @@ def gen_noise(color, volume):
         raise Exception("unsupported noise color %s" % color)
 
     return noise * volume
+
+
+if __name__ == "__main__":
+    version = "noise_{}".format(utils.now())
+    size = 3000
+    
+    noise_dir = Path(config.SILENCE_DATA_PATH)/version
+    noise_dir.mkdir(parents=True, exist_ok=True)
+
+    noise_types = ['white', 'blue', 'brown', 'red', 'violet']
+    for nt in noise_types:
+        print(nt)
+        for i in tqdm(range(size)):
+            fname = "{}_{}.wav".format(nt, i)
+            vol = np.random.rand()
+            wav = gen_noise(nt, vol)
+            wav = np.clip(wav, -1, 1)
+            sf.write(str(noise_dir/fname),
+                     wav,
+                     config.SAMPLE_RATE,
+                     subtype='PCM_16')

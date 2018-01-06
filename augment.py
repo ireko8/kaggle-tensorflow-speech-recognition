@@ -10,6 +10,7 @@ import config
 import utils
 import generator
 import experiment
+import noise
 import submit
 
 
@@ -74,8 +75,11 @@ def add_whitenoise(wav, rate=0.005):
     return np.clip(wav, -1, 1).astype(np.float32)
 
 
-def add_pinknoise(wav, rate=0.005):
-    NotImplemented
+def add_noise(nt):
+    def _add_noise(wav, rate=0.005):
+        wav = (1-rate)*wav + noise.gen_noise(nt, rate)
+        return np.clip(wav, -1, 1).astype(np.float32)
+    return _add_noise
 
 
 def distortion(wav, threshold, level):
@@ -175,6 +179,19 @@ class Augment():
                                        start=0.1,
                                        end=0.5)(add_whitenoise)
 
+        add_bn = utils.rand_decorator("rate",
+                                      start=config.ADD_WN_MIN,
+                                      end=config.ADD_WN_MAX)(add_noise("blue"))
+        add_brn = utils.rand_decorator("rate",
+                                       start=config.ADD_WN_MIN,
+                                       end=config.ADD_WN_MAX)(add_noise("brown"))
+        add_vn = utils.rand_decorator("rate",
+                                      start=config.ADD_WN_MIN,
+                                      end=config.ADD_WN_MAX)(add_noise("violet"))
+        add_rn = utils.rand_decorator("rate",
+                                      start=config.ADD_WN_MIN,
+                                      end=config.ADD_WN_MAX)(add_noise("red"))
+
         patch_bg = partial(patch_bg_random, sample_rate=config.SAMPLE_RATE,
                            bgn=bgn)
         mix_bgn = partial(mix_bgn_wav, bgn=bgn, mix_rate=config.MIX_BGN_RATE)
@@ -208,6 +225,10 @@ class Augment():
                            "pitch_up": pitch_up,
                            "add_wn": add_wn,
                            "add_wn2": add_wn2,
+                           "add_bn": add_bn,
+                           "add_brn": add_brn,
+                           "add_rn": add_rn,
+                           "add_vn": add_vn,
                            "patch_bg": patch_bg,
                            "mix_bgn": mix_bgn,
                            "mix_random": mix_random,

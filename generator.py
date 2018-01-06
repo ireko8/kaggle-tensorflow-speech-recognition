@@ -2,6 +2,7 @@ import random
 import numpy as np
 import scipy.signal as signal
 from scipy.io import wavfile
+import librosa
 from tensorflow.python.keras.utils import to_categorical
 import augment
 import config
@@ -46,6 +47,12 @@ def wav_to_spct(wav, sample_rate=config.SAMPLE_RATE):
     assert(np.stack([phase, amp], axis=2).dtype == np.float32)
     
     return [np.stack([phase, amp], axis=2)]
+
+
+def wav_to_melspct(wav, sample_rate=config.SAMPLE_RATE):
+    melspct = librosa.feature.melspectrogram(y=wav, sr=config.SAMPLE_RATE)
+    assert(melspct.shape == (128, 32))
+    return melspct
 
 
 def batch_generator(input_df, batch_size, category_num,

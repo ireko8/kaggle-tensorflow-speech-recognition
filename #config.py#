@@ -40,9 +40,9 @@ LP_MIN = 2000
 LP_MAX = 7999
 
 # AUG_LIST = []
-AUG_LIST = ["mix_random",
-            "pitch_up",
-            "speed_up"]
+AUG_LIST = ["add_bn",
+            "add_brn",
+            ""]
             
 AUG_VERSION = "2017_12_28_20_04_03"
 AUG_PATH = "data/augment/"

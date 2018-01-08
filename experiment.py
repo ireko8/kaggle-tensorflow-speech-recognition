@@ -73,6 +73,7 @@ def data_load(silence_data_version):
 
     silence_data_path = Path(config.SILENCE_DATA_PATH)/silence_data_version
     silence_df = pd.read_csv(silence_data_path/"file_info.csv")
+    silence_df = silence_df[silence_df.path.str.contains("simple")]
     print("done")
 
     return file_df, bg_paths, silence_df
@@ -85,7 +86,7 @@ def experiment(estimator,
                batch_size,
                sample_size,
                augment_list,
-               online_aug=False,
+               online=False,
                version_path=None,
                csv_log_path=None):
     
@@ -93,9 +94,8 @@ def experiment(estimator,
     train_generator = generator.batch_generator(train_df,
                                                 batch_size,
                                                 label_num,
-                                                online_aug=online_aug,
-                                                bgn_paths=bg_paths,
-                                                aug_list=augment_list)
+                                                online=online,
+                                                bgn_paths=bg_paths)
     valid_generator = generator.batch_generator(valid_df,
                                                 batch_size,
                                                 label_num,
@@ -144,15 +144,15 @@ def validation(silence_data_version,
     if not train_online_aug:
         train_df = augment_data_load(train_df, augment_list, aug_version)
     print("valid")
-    valid_df = augment_data_load(valid_df, augment_list, aug_version)
+    # valid_df = augment_data_load(valid_df, augment_list, aug_version)
     print("silence_data")
     if not train_online_aug:
         silence_train = augment_data_load(silence_train,
                                           augment_list,
                                           aug_version,
                                           silence=True)
-    silence_valid = augment_data_load(silence_valid, augment_list, aug_version,
-                                      silence=True)
+    # silence_valid = augment_data_load(silence_valid, augment_list, aug_version,
+    #                                   silence=True)
     print("done")
 
     train_df = pd.concat([train_df, silence_train])
@@ -169,7 +169,7 @@ def validation(silence_data_version,
     
     result = experiment(estimator, train_df, valid_df, bg_paths,
                         batch_size, sample_size, augment_list,
-                        online_aug=train_online_aug,
+                        online=train_online_aug,
                         version_path=str(version_path/"weights.hdf5"),
                         csv_log_path=str(version_path/"epoch_log.csv"))
     predict_valid_probs = submit.predict(valid_df,
@@ -195,9 +195,10 @@ def cv_ensemble(estimator_name,
                 valid_undersampling=True,
                 base_sample_size=1800,
                 base_valid_size=400,
+                online_aug=False,
                 pseudo_cv_version=None,
                 test_aug_version=None,
-                pseudo_label_size=0.5,
+                pseudo_label_ratio=0.5,
                 batch_size=config.BATCH_SIZE):
     """cross_validation ensemble with silence_data
     without testing
@@ -237,16 +238,24 @@ def cv_ensemble(estimator_name,
                                           aug_version,
                                           silence=True)
         train = pd.concat([train, silence_train])
+        sample_size = base_sample_size*(len(aug_list) + 1)
+        
         if pseudo_cv_version:
             pseudo_label = make_pseudo_labeling(pseudo_cv_version,
                                                 i)
-            pseudo_size = int(base_sample_size*pseudo_label_size)
+            pseudo_size = int(base_sample_size*pseudo_label_ratio)
             pseudo_label = sample_rows(pseudo_label, pseudo_size)
+
             if test_aug_version:
                 pseudo_label = make_pseudo_augment(pseudo_label,
                                                    config.AUG_LIST,
                                                    test_aug_version)
+                pseudo_size = pseudo_size*(len(aug_list) + 1)
+            
             train = pd.concat([train, pseudo_label])
+            sample_size += pseudo_size
+            print("pseudo label class dist")
+            print(pseudo_label.possible_label.value_counts())
 
         valid = augment_data_load(valid, config.AUG_LIST, aug_version)
         silence_valid = silence_data.iloc[other_sid]
@@ -270,8 +279,7 @@ def cv_ensemble(estimator_name,
         print(train.possible_label.value_counts())
         print("valid label dist")
         print(valid.possible_label.value_counts())
-
-        sample_size = base_sample_size*(len(aug_list) + 1)
+            
         print('augmentation types', len(aug_list), sample_size)
 
         label_dist = train.possible_label.value_counts()
@@ -298,7 +306,7 @@ def cv_ensemble(estimator_name,
         print("-"*40)
         res_fold = experiment(estimator, train, valid, bg_paths,
                               batch_size, sample_size, aug_list,
-                              online_aug=False,
+                              online=online_aug,
                               version_path=fold_dump_path,
                               csv_log_path=csv_log_path)
         print("-"*40)
@@ -462,23 +470,24 @@ def cross_validation(estimator_name,
 
 
 if __name__ == "__main__":
-    seed = 2017
+    seed = 4017
     utils.set_seed(seed)
 
-    cv_version = "{time}_{model}_{seed}_online".format(**{'time': utils.now(),
-                                                          'model': "VGG1Dv2",
-                                                          'seed': seed})
+    cv_version = "{time}_{model}_{seed}".format(**{'time': utils.now(),
+                                                   'model': "VGG1Dv3",
+                                                   'seed': seed})
     # cnn = model.VGG1Dv2()
     # validation(config.SILENCE_DATA_VERSION,
     #            cnn,
     #            config.AUG_LIST,
     #            config.AUG_VERSION,
-    #            train_online_aug=False,
+    #            train_online_aug=True,
     #            sample_size=2000)
     res = cv_ensemble("VGG1Dv2",
                       config.SILENCE_DATA_VERSION,
                       cv_version,
                       config.AUG_VERSION,
                       config.AUG_LIST,
-                      pseudo_cv_version="VGG1Dv2/2018_01_05_13_57_50/",
-                      test_aug_version="2018_01_02_22_20_44_test_augment")
+                      online_aug=True)
+    # pseudo_cv_version="VGG1Dv2/2018_01_06_19_39_20_VGG1Dv2_4017_2018_01_07_01_30_28",
+    # test_aug_version="2018_01_02_22_20_44_test_augment")

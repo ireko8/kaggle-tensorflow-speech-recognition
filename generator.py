@@ -7,6 +7,7 @@ from tensorflow.python.keras.utils import to_categorical
 import augment
 import config
 import utils
+import noise
 
 
 def read_wav_file(fname):
@@ -18,6 +19,7 @@ def read_wav_file(fname):
 def process_wav_file(fname,
                      aug_name=None,
                      aug_class=None,
+                     online=False,
                      bgn=None):
     sample_rate, wav = read_wav_file(fname)
 
@@ -26,11 +28,24 @@ def process_wav_file(fname,
     elif len(wav) < sample_rate:
         wav = augment.zero_padding_random(wav, sample_rate)
 
+    if online:
+        if random.random() < 0.5:
+            shift = np.random.randint(config.SHIFT_MIN,
+                                      config.SHIFT_MAX)
+            wav = augment.shift(wav, shift)
+            
+        if random.random() < 0.5:
+            wav *= -1
+
+        if random.random() < 0.5:
+            noise_vol = np.random.rand() * config.MIX_BGN_MAX
+            wav = augment.mix_bgn_wav(wav, bgn, mix_rate=noise_vol)
+
     if aug_name:
         wav = aug_class.abbrev_func_map[aug_name](wav)
         wav = np.clip(wav, -1, 1)
 
-    return wav
+    return np.clip(wav, -1, 1)
 
 
 def wav_to_spct(wav, sample_rate=config.SAMPLE_RATE):
@@ -56,18 +71,22 @@ def wav_to_melspct(wav, sample_rate=config.SAMPLE_RATE):
 
 
 def batch_generator(input_df, batch_size, category_num,
-                    online_aug=False,
-                    aug_list=None,
+                    online=False,
                     bgn_paths=None,
                     mode='train'):
     
-    if online_aug:
+    if online:
+        print("online")
+        # bgn_paths = bgn_paths[~bgn_paths.path.str.contains("white")]
         bgn_data = [read_wav_file(x)[1] for x in bgn_paths.path]
+        for nt in config.NOISE_TYPE:
+            nt_noise = []
+            for _ in range(120):
+                nt_noise.append(noise.gen_noise(nt, 1))
         bgn_data = np.concatenate(bgn_data)
-        aug_class = augment.Augment(bgn_data, aug_list)
 
     def online_aug_preprocess(row):
-        wav = process_wav_file(row.path, row.aug_name, aug_class, bgn_data)
+        wav = process_wav_file(row.path, bgn=bgn_data, online=True)
         return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
 
     def preprocess(path):
@@ -78,10 +97,6 @@ def batch_generator(input_df, batch_size, category_num,
     while True:
         base_df = input_df
         if mode == "train":
-            if online_aug:
-                base_df = utils.cartesian_product(base_df,
-                                                  aug_class.augment_df)
-
             base_df_id = random.sample(range(base_df.shape[0]),
                                        base_df.shape[0])
         else:
@@ -92,7 +107,7 @@ def batch_generator(input_df, batch_size, category_num,
             batch_df_id = base_df_id[start:end]
             batch_df = base_df.iloc[batch_df_id]
 
-            if online_aug:
+            if online:
                 x_batch = batch_df.apply(online_aug_preprocess,
                                          axis=1).values
             else:

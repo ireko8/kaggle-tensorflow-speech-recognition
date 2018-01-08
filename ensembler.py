@@ -29,12 +29,13 @@ def ensembler(sub_list, sub_name):
 
 if __name__ == "__main__":
 
-    sub_list = ["sub/VGG1Dv2/2018_01_06_17_40_23",
-                "sub/VGG1Dv2/2018_01_01_20_16_18",
+    sub_list = ["sub/VGG1Dv2/2018_01_01_20_16_18",
                 "sub/VGG1Dv2/2018_01_01_23_45_31",
                 "sub/VGG1Dv2/2018_01_02_02_27_55",
+                "sub/VGG1Dv2/2018_01_04_20_06_21",
                 "sub/STFTCNN/2017_12_28_00_57_05",
                 "sub/STFTCNN/2018_01_03_12_53_40",
-                "sub/STFTCNN/2017_12_28_00_57_05"]
+                "sub/STFTCNN/2018_01_03_12_53_40",
+                "sub/STFTCNN/2018_01_07_05_16_53"]
     sub_name = utils.now()
     ensembler(sub_list, sub_name)

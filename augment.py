@@ -160,18 +160,22 @@ class Augment():
                                               end=-config.SHIFT_MIN,
                                               integer=True)(shift)
 
-        speed_up = utils.rand_decorator("rate",
-                                        start=config.SPEED_UP_MIN,
-                                        end=config.SPEED_UP_MAX)(strech)
+        # speed_up = utils.rand_decorator("rate",
+        #                                 start=config.SPEED_UP_MIN,
+        #                                 end=config.SPEED_UP_MAX)(strech)
 
-        speed_down = utils.rand_decorator("rate",
-                                          start=config.SPEED_DOWN_MIN,
-                                          end=config.SPEED_DOWN_MAX)(strech)
+        # speed_down = utils.rand_decorator("rate",
+        #                                   start=config.SPEED_DOWN_MIN,
+        #                                   end=config.SPEED_DOWN_MAX)(strech)
+        speed_up = partial(strech, rate=config.SPEED_DOWN_MAX)
+        speed_down = partial(strech, rate=config.SPEED_DOWN_MIN)
 
-        pitch_up = utils.rand_decorator("pitch",
-                                        start=config.PITCH_MIN,
-                                        end=config.PITCH_MAX)(pitch_shift)
-
+        # pitch_up = utils.rand_decorator("pitch",
+        #                                 start=config.PITCH_MIN,
+        #                                 end=config.PITCH_MAX)(pitch_shift)
+        pitch_up = partial(pitch_shift, pitch=config.PITCH_MIN)
+        pitch_down = partial(pitch_shift, pitch=config.PITCH_MAX)
+        
         add_wn = utils.rand_decorator("rate",
                                       start=config.ADD_WN_MIN,
                                       end=config.ADD_WN_MAX)(add_whitenoise)
@@ -223,6 +227,7 @@ class Augment():
                            "speed_up": speed_up,
                            "speed_down": speed_down,
                            "pitch_up": pitch_up,
+                           "pitch_down": pitch_down,
                            "add_wn": add_wn,
                            "add_wn2": add_wn2,
                            "add_bn": add_bn,
@@ -272,9 +277,12 @@ if __name__ == "__main__":
     bgn_data = [generator.read_wav_file(x)[1] for x in bgn_paths.path]
     bgn_data = np.concatenate(bgn_data)
 
-    directory = "{}".format(utils.now())
+    directory = "{}_param_fixed".format(utils.now())
 
-    aug_class = Augment(bgn_data, config.AUG_LIST)
+    aug_class = Augment(bgn_data, ["pitch_up",
+                                   "pitch_down",
+                                   "speed_up",
+                                   "speed_down"])
 
     # print('test augmentation')
     # aug_class.dump(test_paths, directory)

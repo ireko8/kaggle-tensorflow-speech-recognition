@@ -112,18 +112,25 @@ class VGG1Dv2():
                            padding="same")(x)
                 x = Activation("relu")(x)
                 x = BatchNormalization()(x)
-
+                x = Conv1D(2**(i+3), ks2,
+                           strides=st2,
+                           padding="same")(x)
+                x = Activation("relu")(x)
+                x = BatchNormalization()(x)
+                
             x = MaxPooling1D(2, padding="same")(x)
 
         x = Conv1D(2**9, 4,
                    strides=1,
                    padding="same")(x)
+        x = Activation("relu")(x)
+        x = BatchNormalization()(x)
 
         x_branch_1 = GlobalAveragePooling1D()(x)
         x_branch_2 = GlobalMaxPool1D()(x)
         x = concatenate([x_branch_1, x_branch_2])
         x = Dense(1024, activation='relu')(x)
-        x = Dropout(0.2)(x)
+        x = Dropout(0.3)(x)
         x = Dense(len(config.POSSIBLE_LABELS), activation='softmax')(x)
         model = Model(inputs=x_in, outputs=x)
         model.compile(optimizer='rmsprop',
@@ -132,6 +139,52 @@ class VGG1Dv2():
 
         self.model = model
 
+
+class VGG1Dv3():
+    """1d VGG16 like convolution model
+    """
+    def __init__(self, name="VGG1Dv3"):
+        self.name = name
+
+    def model_init(self, input_shape=(config.SAMPLE_RATE, 1)):
+
+        def Conv1Dbn(x, conv_count, ks, ch, st=1, dropout=None):
+            if dropout:
+                x = Dropout(dropout)(x)
+            for c in range(conv_count):
+                x = Conv1D(ch, ks,
+                           strides=st,
+                           padding="same")(x)
+                x = Activation("relu")(x)
+                x = BatchNormalization()(x)
+
+            x = MaxPooling1D(2, padding="same")(x)
+            return x
+        
+        x_in = Input(shape=input_shape)
+        x = Conv1Dbn(x_in, 1, 16, 8, st=2)
+        x = Conv1Dbn(x, 2, 3, 16)
+        x = Conv1Dbn(x, 2, 3, 32)
+        x = Conv1Dbn(x, 2, 3, 64, dropout=0.1)
+        x = Conv1Dbn(x, 4, 3, 128, dropout=0.1)
+        x = Conv1Dbn(x, 4, 3, 256, dropout=0.1)
+        x = Conv1Dbn(x, 4, 3, 512, dropout=0.1)
+        x = Conv1Dbn(x, 2, 3, 1024, dropout=0.1)
+
+        x = GlobalAveragePooling1D()(x)
+        x = Dense(512, activation='relu')(x)
+        x = Dropout(0.5)(x)
+        x = Dense(256, activation='relu')(x)
+        x = Dropout(0.5)(x)
+        x = Dense(len(config.POSSIBLE_LABELS), activation='softmax')(x)
+        
+        model = Model(inputs=x_in, outputs=x)
+        model.compile(optimizer='rmsprop',
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
+
+        self.model = model
+        
 
 class MelSpectCNN():
 

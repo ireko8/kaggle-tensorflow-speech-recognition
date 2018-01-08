@@ -476,18 +476,18 @@ if __name__ == "__main__":
     cv_version = "{time}_{model}_{seed}".format(**{'time': utils.now(),
                                                    'model': "VGG1Dv3",
                                                    'seed': seed})
-    # cnn = model.VGG1Dv2()
-    # validation(config.SILENCE_DATA_VERSION,
-    #            cnn,
-    #            config.AUG_LIST,
-    #            config.AUG_VERSION,
-    #            train_online_aug=True,
-    #            sample_size=2000)
-    res = cv_ensemble("VGG1Dv2",
-                      config.SILENCE_DATA_VERSION,
-                      cv_version,
-                      config.AUG_VERSION,
-                      config.AUG_LIST,
-                      online_aug=True)
+    cnn = model.VGG1Dv2()
+    validation(config.SILENCE_DATA_VERSION,
+               cnn,
+               config.AUG_LIST,
+               config.AUG_VERSION,
+               train_online_aug=True,
+               sample_size=2000)
+    # res = cv_ensemble("VGG1Dv2",
+    #                   config.SILENCE_DATA_VERSION,
+    #                   cv_version,
+    #                   config.AUG_VERSION,
+    #                   config.AUG_LIST,
+    #                   online_aug=True)
     # pseudo_cv_version="VGG1Dv2/2018_01_06_19_39_20_VGG1Dv2_4017_2018_01_07_01_30_28",
     # test_aug_version="2018_01_02_22_20_44_test_augment")

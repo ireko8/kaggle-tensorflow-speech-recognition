@@ -118,6 +118,7 @@ def validation(silence_data_version,
                augment_list,
                aug_version,
                train_online_aug=False,
+               train_offline_aug=True,
                sample_size=2000,
                batch_size=config.BATCH_SIZE,
                silence_train_size=2000):
@@ -141,12 +142,12 @@ def validation(silence_data_version,
 
     print("load augmentation")
     print("train")
-    if not train_online_aug:
+    if train_offline_aug:
         train_df = augment_data_load(train_df, augment_list, aug_version)
     print("valid")
     # valid_df = augment_data_load(valid_df, augment_list, aug_version)
     print("silence_data")
-    if not train_online_aug:
+    if train_offline_aug:
         silence_train = augment_data_load(silence_train,
                                           augment_list,
                                           aug_version,
@@ -470,24 +471,23 @@ def cross_validation(estimator_name,
 
 
 if __name__ == "__main__":
-    seed = 4017
+    seed = 2017
     utils.set_seed(seed)
 
     cv_version = "{time}_{model}_{seed}".format(**{'time': utils.now(),
                                                    'model': "VGG1Dv3",
                                                    'seed': seed})
     cnn = model.VGG1Dv2()
-    validation(config.SILENCE_DATA_VERSION,
-               cnn,
-               config.AUG_LIST,
-               config.AUG_VERSION,
-               train_online_aug=True,
-               sample_size=2000)
-    # res = cv_ensemble("VGG1Dv2",
-    #                   config.SILENCE_DATA_VERSION,
-    #                   cv_version,
-    #                   config.AUG_VERSION,
-    #                   config.AUG_LIST,
-    #                   online_aug=True)
-    # pseudo_cv_version="VGG1Dv2/2018_01_06_19_39_20_VGG1Dv2_4017_2018_01_07_01_30_28",
-    # test_aug_version="2018_01_02_22_20_44_test_augment")
+    # validation(config.SILENCE_DATA_VERSION,
+    #            cnn,
+    #            config.AUG_LIST,
+    #            config.AUG_VERSION,
+    #            train_online_aug=True,
+    #            sample_size=2000)
+    res = cv_ensemble("VGG1Dv2",
+                      config.SILENCE_DATA_VERSION,
+                      cv_version,
+                      config.AUG_VERSION,
+                      config.AUG_LIST,
+                      online_aug=True)
+# pseudo_cv_version="VGG1Dv2/2018_01_08_19_37_23_VGG1Dv3_4017_2018_01_09_01_37_49")

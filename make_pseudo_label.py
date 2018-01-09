@@ -13,7 +13,8 @@ def convert_aug_path(row, aug, test_aug_version):
 
 
 def make_pseudo_labeling(cv_version, fold,
-                         threshold=0.98,
+                         threshold=0.9,
+                         max_probs_drop=True,
                          num_fold=5):
     pseudo_dir = Path('data/pseudo_label/{}'.format(cv_version))
     pseudo_dir.mkdir(exist_ok=True, parents=True)
@@ -33,13 +34,16 @@ def make_pseudo_labeling(cv_version, fold,
             cv_res.append(res.drop("path", axis=1).values)
 
     cv_probs = np.array(cv_res)
+    print(cv_probs.shape)
     cv_mean = np.mean(cv_probs, axis=0)
     pseudo_plnum = pd.Series(np.argmax(cv_mean, axis=1), name="plnum")
     max_probs = pd.Series(np.max(cv_mean, axis=1), name="max_probs")
     pseudo_label = pd.concat([test_paths, pseudo_plnum, max_probs], axis=1)
     pseudo_label["possible_label"] = utils.id_to_label(pseudo_label.plnum)
-    pseudo_label = pseudo_label[pseudo_label.max_probs >= threshold]
-    pseudo_label = pseudo_label.drop("max_probs", axis=1)
+    if max_probs_drop:
+        pseudo_label = pseudo_label[pseudo_label.max_probs >= threshold]
+        pseudo_label = pseudo_label.drop("max_probs", axis=1)
+    print(pseudo_label.possible_label.value_counts())
     return pseudo_label
 
 

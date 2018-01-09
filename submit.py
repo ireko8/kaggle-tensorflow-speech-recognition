@@ -53,8 +53,8 @@ if __name__ == '__main__':
     cnn = model.VGG1Dv2()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    # cnn.model.load_weights("model/VGG1Dv2/2018_01_08_14_46_02/weights.hdf5")
-    cv_version = "2018_01_08_19_37_23_VGG1Dv3_4017"
+    # cnn.model.load_weights("model/VGG1Dv2/2018_01_09_02_15_56/weights.hdf5")
+    cv_version = "2018_01_09_11_39_08_VGG1Dv3_2017"
     
     cv_path = "cv/{}/{}".format(cnn.name, cv_version)
     sub_path = Path("sub/{}".format(cnn.name))/"{}_{}".format(cv_version,

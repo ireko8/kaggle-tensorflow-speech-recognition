@@ -87,6 +87,7 @@ def batch_generator(input_df, batch_size, category_num,
 
     def online_aug_preprocess(row):
         wav = process_wav_file(row.path, bgn=bgn_data, online=True)
+        assert(len(wav) == config.SAMPLE_RATE)
         return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
 
     def preprocess(path):
@@ -108,12 +109,25 @@ def batch_generator(input_df, batch_size, category_num,
             batch_df = base_df.iloc[batch_df_id]
 
             if online:
-                x_batch = batch_df.apply(online_aug_preprocess,
-                                         axis=1).values
+                x_batch_df = batch_df.apply(online_aug_preprocess,
+                                            axis=1).values
             else:
-                x_batch = batch_df.path.apply(preprocess).values
+                x_batch_df = batch_df.path.apply(preprocess).values
+
+            x_batch = np.concatenate(x_batch_df)
+                
+            if len(x_batch.shape) != 3:
+                x_batch = np.stack(x_batch_df[:, 0])
+
+            while len(x_batch.shape) != 3:
+                import ipdb; ipdb.set_trace()
+                if online:
+                    x_batch = batch_df.apply(online_aug_preprocess,
+                                             axis=1).values
+                else:
+                    x_batch = batch_df.path.apply(preprocess).values
             
-            x_batch = np.concatenate(x_batch)
+                x_batch = np.concatenate(x_batch)
 
             if mode != 'test':
                 y_batch = batch_df.plnum.values

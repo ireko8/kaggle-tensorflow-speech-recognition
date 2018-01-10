@@ -35,6 +35,10 @@ def ensembler(sub_list, sub_name):
 if __name__ == "__main__":
 
     sub_list = ["sub/VGG1Dv2/2018_01_08_19_37_23_VGG1Dv3_4017_2018_01_09_01_37_49",
+                "sub/VGG1Dv2/2018_01_10_01_27_39_VGG1Dv2_4017_2018_01_10_14_47_56",
+                "sub/VGG1Dv2/2018_01_09_19_22_27_VGG1Dv3_2017_2018_01_09_22_59_16",
+                "sub/STFTCNN/2018_01_07_05_16_53",
+                "sub/STFTCNN/2018_01_07_05_16_53",
                 "sub/STFTCNN/2018_01_07_05_16_53"]
     sub_name = utils.now()
     ensembler(sub_list, sub_name)

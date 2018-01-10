@@ -198,6 +198,7 @@ def cv_ensemble(estimator_name,
                 base_valid_size=400,
                 online_aug=False,
                 pseudo_cv_version=None,
+                pseudo_threshold=0.98,
                 test_aug_version=None,
                 pseudo_label_ratio=0.5,
                 batch_size=config.BATCH_SIZE):
@@ -243,7 +244,8 @@ def cv_ensemble(estimator_name,
         
         if pseudo_cv_version:
             pseudo_label = make_pseudo_labeling(pseudo_cv_version,
-                                                i)
+                                                i,
+                                                threshold=pseudo_threshold)
             pseudo_size = int(base_sample_size*pseudo_label_ratio)
             pseudo_label = sample_rows(pseudo_label, pseudo_size)
 
@@ -307,7 +309,7 @@ def cv_ensemble(estimator_name,
         print("-"*40)
         res_fold = experiment(estimator, train, valid, bg_paths,
                               batch_size, sample_size, aug_list,
-                              online=online_aug,
+                              online=online_aug,                              
                               version_path=fold_dump_path,
                               csv_log_path=csv_log_path)
         print("-"*40)
@@ -471,11 +473,11 @@ def cross_validation(estimator_name,
 
 
 if __name__ == "__main__":
-    seed = 2017
+    seed = 3017
     utils.set_seed(seed)
 
     cv_version = "{time}_{model}_{seed}".format(**{'time': utils.now(),
-                                                   'model': "VGG1Dv3",
+                                                   'model': "VGG1Dv2",
                                                    'seed': seed})
     cnn = model.VGG1Dv2()
     # validation(config.SILENCE_DATA_VERSION,
@@ -490,4 +492,5 @@ if __name__ == "__main__":
                       config.AUG_VERSION,
                       config.AUG_LIST,
                       online_aug=True)
-# pseudo_cv_version="VGG1Dv2/2018_01_08_19_37_23_VGG1Dv3_4017_2018_01_09_01_37_49")
+#                      pseudo_cv_version="STFTCNN/2018_01_07_05_16_53",
+#                      pseudo_threshold=0.6)

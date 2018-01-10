@@ -13,13 +13,13 @@ def convert_aug_path(row, aug, test_aug_version):
 
 
 def make_pseudo_labeling(cv_version, fold,
-                         threshold=0.9,
+                         threshold=0.98,
                          max_probs_drop=True,
                          num_fold=5):
     pseudo_dir = Path('data/pseudo_label/{}'.format(cv_version))
     pseudo_dir.mkdir(exist_ok=True, parents=True)
     
-    test_paths = Path(config.TEST_AUDIO_PATH).glob("*wav")
+    test_paths = sorted(Path(config.TEST_AUDIO_PATH).glob("*wav"))
     test_paths = pd.DataFrame(test_paths, columns=["path"])
     test_flist = test_paths.path.apply(lambda x: x.parts[-1])
 
@@ -30,7 +30,8 @@ def make_pseudo_labeling(cv_version, fold,
         if i != fold:
             res = pd.read_csv("sub/{}/{}_probs.csv".format(cv_version,
                                                            i))
-            assert(all(test_flist == res.path))
+            res = res.sort_values(by='path')
+            assert(all(test_flist.values == res.path.values))
             cv_res.append(res.drop("path", axis=1).values)
 
     cv_probs = np.array(cv_res)

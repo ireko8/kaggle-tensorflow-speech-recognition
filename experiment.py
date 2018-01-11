@@ -63,10 +63,11 @@ def augment_data_load(paths, augs, version, silence=False):
     return paths
 
 
-def data_load(silence_data_version):
+def data_load(silence_data_version, label=False):
     print("base data load")
     file_df = pd.read_csv(config.TRAIN_FILE_META_INFO)
-    file_df = file_df[["path", "uid", "possible_label", "plnum", "is_valid"]]
+    if not label:
+        file_df = file_df[["path", "uid", "possible_label", "plnum", "is_valid"]]
     bg_paths = file_df[file_df["possible_label"] == "_background_noise_"]
     file_df = file_df[file_df["possible_label"] != "_background_noise_"]
     file_df['plnum'] = file_df.plnum.astype('int64')
@@ -198,7 +199,7 @@ def cv_ensemble(estimator_name,
                 base_valid_size=400,
                 online_aug=False,
                 pseudo_cv_version=None,
-                pseudo_threshold=0.98,
+                pseudo_sampling=1800,
                 test_aug_version=None,
                 pseudo_label_ratio=0.5,
                 batch_size=config.BATCH_SIZE):
@@ -245,7 +246,7 @@ def cv_ensemble(estimator_name,
         if pseudo_cv_version:
             pseudo_label = make_pseudo_labeling(pseudo_cv_version,
                                                 i,
-                                                threshold=pseudo_threshold)
+                                                sampling=pseudo_sampling)
             pseudo_size = int(base_sample_size*pseudo_label_ratio)
             pseudo_label = sample_rows(pseudo_label, pseudo_size)
 
@@ -317,6 +318,176 @@ def cv_ensemble(estimator_name,
 
         result.append(res_fold)
 
+    return result
+
+
+def cv_adversarial_ensemble(estimator_name,
+                            silence_data_version,
+                            cv_version,
+                            aug_version,
+                            aug_list,
+                            n_splits=5,
+                            valid_undersampling=True,
+                            base_sample_size=1800,
+                            base_valid_size=400,
+                            online_aug=False,
+                            pseudo_cv_version=None,
+                            pseudo_threshold=0.98,
+                            test_aug_version=None,
+                            pseudo_label_ratio=0.5,
+                            batch_size=config.BATCH_SIZE):
+    """adversarial cross_validation ensemble with silence_data
+    without testing
+    (split unknowns words exclusively)
+    """
+
+    version_path = Path("cv/")/estimator_name/cv_version
+    version_path.mkdir(parents=True, exist_ok=True)
+    file_df, bg_paths, silence_data = data_load(silence_data_version,
+                                                label=True)
+    file_df = file_df.drop(["is_valid"], axis=1)
+    known_df = file_df[file_df.possible_label != "unknown"]
+    unknown_df = file_df[file_df.possible_label == "unknown"]
+
+    uid_list = file_df.uid.unique()
+    kfold_data = KFold(n_splits=n_splits, shuffle=True).split(uid_list)
+    kfold_silence = KFold(n_splits=n_splits, shuffle=True).split(silence_data)
+    unknown_words = unknown_df["label"].unique()
+    kfold_unknown = KFold(n_splits=n_splits, shuffle=True).split(unknown_words)
+    kfold = zip(kfold_data, kfold_silence, kfold_unknown)
+    result = list()
+    unknown_acc = []
+
+    for i, ((train_id, other_id),
+            (train_sid, other_sid),
+            (train_wid, other_wid)) in enumerate(kfold):
+        print("fold {} start".format(i))
+        print("-"*80)
+        train_uid = uid_list[train_id]
+        valid_uid = uid_list[other_id]
+
+        train_known = known_df[known_df.uid.isin(train_uid)]
+        train_known = sample_rows(train_known, base_sample_size)
+        valid_known = known_df[known_df.uid.isin(valid_uid)]
+        if valid_undersampling:
+            valid_known = sample_rows(valid_known, base_valid_size)
+
+        train_word = unknown_words[train_wid]
+        valid_word = unknown_words[other_wid]
+        assert(set(train_wid) & set(valid_word) == set())
+        
+        train_unknown = unknown_df[unknown_df.uid.isin(train_uid)]
+        train_unknown = train_unknown[train_unknown.label.isin(train_word)]
+        train_unknown = sample_rows(train_unknown, base_sample_size)
+        valid_unknown = unknown_df[unknown_df.uid.isin(valid_uid)]
+        valid_unknown = valid_unknown[unknown_df.label.isin(valid_word)]
+        if valid_undersampling:
+            valid_unknown = sample_rows(valid_unknown, base_valid_size)
+
+        # quick check for proper validation
+        train = pd.concat([train_known, train_unknown])
+        valid = pd.concat([valid_known, valid_unknown])
+        
+        assert(set(train.uid) & set(valid.uid) == set())
+
+        train = augment_data_load(train, config.AUG_LIST, aug_version)
+        silence_train = silence_data.iloc[train_sid]
+        silence_train = sample_rows(silence_train, base_sample_size)
+        silence_train = augment_data_load(silence_train,
+                                          config.AUG_LIST,
+                                          aug_version,
+                                          silence=True)
+        train = pd.concat([train, silence_train])
+        sample_size = base_sample_size*(len(aug_list) + 1)
+        
+        if pseudo_cv_version:
+            pseudo_label = make_pseudo_labeling(pseudo_cv_version,
+                                                i,
+                                                threshold=pseudo_threshold)
+            pseudo_size = int(base_sample_size*pseudo_label_ratio)
+            pseudo_label = sample_rows(pseudo_label, pseudo_size)
+
+            if test_aug_version:
+                pseudo_label = make_pseudo_augment(pseudo_label,
+                                                   config.AUG_LIST,
+                                                   test_aug_version)
+                pseudo_size = pseudo_size*(len(aug_list) + 1)
+            
+            train = pd.concat([train, pseudo_label])
+            sample_size += pseudo_size
+            print("pseudo label class dist")
+            print(pseudo_label.possible_label.value_counts())
+
+        valid = augment_data_load(valid, config.AUG_LIST, aug_version)
+        silence_valid = silence_data.iloc[other_sid]
+        if valid_undersampling:
+            silence_valid = sample_rows(silence_valid, base_valid_size)
+        silence_valid = augment_data_load(silence_valid,
+                                          config.AUG_LIST,
+                                          aug_version,
+                                          silence=True)
+        valid = pd.concat([valid, silence_valid])
+
+        # info of dataset
+        print('{:>10},{:>10},{:>10}'.format("type",
+                                            "train_size",
+                                            "valid_size"))
+        print('train', len(train), len(valid))
+        print('silence',
+              len(silence_train),
+              len(silence_valid))
+        print("train label dist")
+        print(train.possible_label.value_counts())
+        print("valid label dist")
+        print(valid.possible_label.value_counts())
+        print("train unknown words")
+        print(train_word)
+        print("valid unknown words")
+        print(valid_word)
+            
+        print('augmentation types', len(aug_list), sample_size)
+
+        label_dist = train.possible_label.value_counts()
+        label_dist.to_csv(version_path/"fold_{}_train_ldist".format(i))
+
+        label_dist = valid.possible_label.value_counts()
+        label_dist.to_csv(version_path/"fold_{}_valid_ldist".format(i))
+        
+        fold_dump_path = str(version_path / "fold_{}.hdf5".format(i))
+        csv_log_path = str(version_path / "fold_{}_log.csv".format(i))
+
+        # TODO: refactor architecture of model module (VGG1D, STFTCNN)
+        if estimator_name == "VGG1D":
+            estimator = model.VGG1D()
+            estimator.model_init()
+        if estimator_name == "VGG1Dv2":
+            estimator = model.VGG1Dv2()
+            estimator.model_init()
+        if estimator_name == "STFTCNN":
+            estimator = model.STFTCNN()
+            estimator.model_init()
+
+        print("learning start")
+        print("-"*40)
+        res_fold = experiment(estimator, train, valid, bg_paths,
+                              batch_size, sample_size, aug_list,
+                              online=online_aug,
+                              version_path=fold_dump_path,
+                              csv_log_path=csv_log_path)
+
+        result.append(res_fold)
+        predict_test_probs = submit.predict(valid_unknown,
+                                            bg_paths,
+                                            estimator)
+        predict_id = np.argmax(predict_test_probs, axis=1)
+        acc = accuracy_score(valid_unknown.plnum, predict_id)
+        print("unknown accuracy", acc)
+        unknown_acc.append(acc)
+        print("-"*40)
+        print("done")
+
+    unknown_acc = np.array(unknown_acc)
+    print("unknown accuracy:", unknown_acc.mean(), unknown_acc.std())
     return result
 
 
@@ -473,12 +644,14 @@ def cross_validation(estimator_name,
 
 
 if __name__ == "__main__":
-    seed = 3017
+    seed = 5017
     utils.set_seed(seed)
 
     cv_version = "{time}_{model}_{seed}".format(**{'time': utils.now(),
                                                    'model': "VGG1Dv2",
                                                    'seed': seed})
+    cv_version += "_adversarial"
+
     cnn = model.VGG1Dv2()
     # validation(config.SILENCE_DATA_VERSION,
     #            cnn,
@@ -491,6 +664,5 @@ if __name__ == "__main__":
                       cv_version,
                       config.AUG_VERSION,
                       config.AUG_LIST,
-                      online_aug=True)
-#                      pseudo_cv_version="STFTCNN/2018_01_07_05_16_53",
-#                      pseudo_threshold=0.6)
+                      online_aug=True,
+                      pseudo_cv_version="STFTCNN/2018_01_07_05_16_53")

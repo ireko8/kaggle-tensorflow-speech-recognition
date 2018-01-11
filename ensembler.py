@@ -23,6 +23,11 @@ def ensembler(sub_list, sub_name):
             probs.append(fold_prob.drop("path", axis=1).values)
 
     ensembled_probs = np.array(probs).mean(0)
+    sub_probs = pd.DataFrame(ensembled_probs, columns=config.POSSIBLE_LABELS)
+    sub_probs = pd.concat([test_paths, sub_probs], axis=1)
+    sub_probs.to_csv("result/probs/{}.csv".format(sub_name),
+                     index=False)
+    
     ensemble_plnum = np.argmax(ensembled_probs, axis=1)
     ensemble_plnum = pd.Series(ensemble_plnum, name='label')
     ensemble_label = utils.id_to_label(ensemble_plnum)
@@ -37,6 +42,8 @@ if __name__ == "__main__":
     sub_list = ["sub/VGG1Dv2/2018_01_08_19_37_23_VGG1Dv3_4017_2018_01_09_01_37_49",
                 "sub/VGG1Dv2/2018_01_10_01_27_39_VGG1Dv2_4017_2018_01_10_14_47_56",
                 "sub/VGG1Dv2/2018_01_09_19_22_27_VGG1Dv3_2017_2018_01_09_22_59_16",
+                "sub/VGG1Dv2/2018_01_10_22_50_50_VGG1Dv2_3018_online_2018_01_11_09_26_40",
+                "sub/STFTCNN/2018_01_07_05_16_53",
                 "sub/STFTCNN/2018_01_07_05_16_53",
                 "sub/STFTCNN/2018_01_07_05_16_53",
                 "sub/STFTCNN/2018_01_07_05_16_53"]

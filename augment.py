@@ -160,19 +160,16 @@ class Augment():
                                               end=-config.SHIFT_MIN,
                                               integer=True)(shift)
 
-        # speed_up = utils.rand_decorator("rate",
-        #                                 start=config.SPEED_UP_MIN,
-        #                                 end=config.SPEED_UP_MAX)(strech)
+        speed_random = utils.rand_decorator("rate",
+                                            start=config.SPEED_UP_MIN,
+                                            end=config.SPEED_UP_MAX)(strech)
 
-        # speed_down = utils.rand_decorator("rate",
-        #                                   start=config.SPEED_DOWN_MIN,
-        #                                   end=config.SPEED_DOWN_MAX)(strech)
         speed_up = partial(strech, rate=config.SPEED_DOWN_MAX)
         speed_down = partial(strech, rate=config.SPEED_DOWN_MIN)
 
-        # pitch_up = utils.rand_decorator("pitch",
-        #                                 start=config.PITCH_MIN,
-        #                                 end=config.PITCH_MAX)(pitch_shift)
+        pitch_random = utils.rand_decorator("pitch",
+                                            start=config.PITCH_MIN,
+                                            end=config.PITCH_MAX)(pitch_shift)
         pitch_up = partial(pitch_shift, pitch=config.PITCH_MIN)
         pitch_down = partial(pitch_shift, pitch=config.PITCH_MAX)
         
@@ -226,8 +223,10 @@ class Augment():
                            "shift_backward": shift_backward,
                            "speed_up": speed_up,
                            "speed_down": speed_down,
+                           "speed_random": speed_random,
                            "pitch_up": pitch_up,
                            "pitch_down": pitch_down,
+                           "pitch_random": pitch_random,
                            "add_wn": add_wn,
                            "add_wn2": add_wn2,
                            "add_bn": add_bn,
@@ -270,8 +269,8 @@ if __name__ == "__main__":
     utils.set_seed(2017)
     
     sdata = config.SILENCE_DATA_VERSION
-    train_paths, bgn_paths, silence_paths = experiment.data_load(sdata)
-    # test_paths, bgn_paths = submit.test_data_load()
+    # train_paths, bgn_paths, silence_paths = experiment.data_load(sdata)
+    test_paths, bgn_paths = submit.test_data_load()
 
     # bgn_paths = bgn_paths[~bgn_paths.path.str.contains("white")]
     bgn_data = [generator.read_wav_file(x)[1] for x in bgn_paths.path]
@@ -279,15 +278,13 @@ if __name__ == "__main__":
 
     directory = "{}_param_fixed".format(utils.now())
 
-    aug_class = Augment(bgn_data, ["pitch_up",
-                                   "pitch_down",
-                                   "speed_up",
-                                   "speed_down"])
+    aug_class = Augment(bgn_data, ["pitch_random",
+                                   "speed_random"])
 
-    # print('test augmentation')
-    # aug_class.dump(test_paths, directory)
+    print('test augmentation')
+    aug_class.dump(test_paths, directory)
     
-    print('train augmentation')
-    aug_class.dump(train_paths, directory)
-    print('silence augmentation')
-    aug_class.dump(silence_paths, directory)
+    # print('train augmentation')
+    # aug_class.dump(train_paths, directory)
+    # print('silence augmentation')
+    # aug_class.dump(silence_paths, directory)

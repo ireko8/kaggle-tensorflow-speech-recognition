@@ -46,3 +46,5 @@ AUG_VERSION = "2017_12_28_20_04_03"
 AUG_PATH = "data/augment/"
 
 NOISE_TYPE = ["blue", "brown", "violet", "white", "pink"]
+
+CV_SAMPLING_SIZE = 1800

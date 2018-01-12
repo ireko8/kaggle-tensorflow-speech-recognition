@@ -43,9 +43,9 @@ if __name__ == "__main__":
                 "sub/VGG1Dv2/2018_01_10_01_27_39_VGG1Dv2_4017_2018_01_10_14_47_56",
                 "sub/VGG1Dv2/2018_01_09_19_22_27_VGG1Dv3_2017_2018_01_09_22_59_16",
                 "sub/VGG1Dv2/2018_01_10_22_50_50_VGG1Dv2_3018_online_2018_01_11_09_26_40",
+                "sub/STFTCNNv2/2018_01_12_01_39_43_STFTCNNv2_5017_2018_01_12_18_06_39",
+                "sub/STFTCNNv2/2018_01_11_09_54_57_STFTCNNv2_3018_online_2018_01_12_02_48_47",
                 "sub/STFTCNN/2018_01_07_05_16_53",
-                "sub/STFTCNN/2018_01_07_05_16_53",
-                "sub/STFTCNN/2018_01_07_05_16_53",
-                "sub/STFTCNN/2018_01_07_05_16_53"]
+                "sub/STFTCNNv2/2018_01_11_09_54_57_STFTCNNv2_3018_online_2018_01_12_02_48_47"]
     sub_name = utils.now()
     ensembler(sub_list, sub_name)

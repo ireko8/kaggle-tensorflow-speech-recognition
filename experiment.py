@@ -88,6 +88,7 @@ def experiment(estimator,
                sample_size,
                augment_list,
                online=False,
+               oversampling=False,
                version_path=None,
                csv_log_path=None):
     
@@ -96,6 +97,8 @@ def experiment(estimator,
                                                 batch_size,
                                                 label_num,
                                                 online=online,
+                                                oversampling=oversampling,
+                                                sampling_size=sample_size,
                                                 bgn_paths=bg_paths)
     valid_generator = generator.batch_generator(valid_df,
                                                 batch_size,
@@ -198,6 +201,7 @@ def cv_ensemble(estimator_name,
                 base_sample_size=1800,
                 base_valid_size=400,
                 online_aug=False,
+                oversampling=False,
                 pseudo_cv_version=None,
                 pseudo_sampling=1800,
                 test_aug_version=None,
@@ -225,7 +229,8 @@ def cv_ensemble(estimator_name,
         valid_uid = uid_list[other_id]
 
         train = file_df[file_df.uid.isin(train_uid)]
-        train = sample_rows(train, base_sample_size)
+        if not oversampling:
+            train = sample_rows(train, base_sample_size)
         valid = file_df[file_df.uid.isin(valid_uid)]
         if valid_undersampling:
             valid = sample_rows(valid, base_valid_size)
@@ -235,7 +240,8 @@ def cv_ensemble(estimator_name,
 
         train = augment_data_load(train, config.AUG_LIST, aug_version)
         silence_train = silence_data.iloc[train_sid]
-        silence_train = sample_rows(silence_train, base_sample_size)
+        if not oversampling:
+            silence_train = sample_rows(silence_train, base_sample_size)
         silence_train = augment_data_load(silence_train,
                                           config.AUG_LIST,
                                           aug_version,
@@ -246,9 +252,10 @@ def cv_ensemble(estimator_name,
         if pseudo_cv_version:
             pseudo_label = make_pseudo_labeling(pseudo_cv_version,
                                                 i,
-                                                sampling=pseudo_sampling)
+                                                sampling=3000)
             pseudo_size = int(base_sample_size*pseudo_label_ratio)
-            pseudo_label = sample_rows(pseudo_label, pseudo_size)
+            if not oversampling:
+                pseudo_label = sample_rows(pseudo_label, pseudo_size)
 
             if test_aug_version:
                 pseudo_label = make_pseudo_augment(pseudo_label,
@@ -302,15 +309,16 @@ def cv_ensemble(estimator_name,
         if estimator_name == "VGG1Dv2":
             estimator = model.VGG1Dv2()
             estimator.model_init()
-        if estimator_name == "STFTCNN":
-            estimator = model.STFTCNN()
+        if estimator_name == "STFTCNNv2":
+            estimator = model.STFTCNNv2()
             estimator.model_init()
 
         print("learning start")
         print("-"*40)
         res_fold = experiment(estimator, train, valid, bg_paths,
                               batch_size, sample_size, aug_list,
-                              online=online_aug,                              
+                              online=online_aug,
+                              oversampling=oversampling,
                               version_path=fold_dump_path,
                               csv_log_path=csv_log_path)
         print("-"*40)
@@ -363,32 +371,40 @@ def cv_adversarial_ensemble(estimator_name,
             (train_wid, other_wid)) in enumerate(kfold):
         print("fold {} start".format(i))
         print("-"*80)
-        train_uid = uid_list[train_id]
-        valid_uid = uid_list[other_id]
+        id_valid_len = int(len(train_id)*base_valid_split)
+        train_uid = uid_list[train_id[:id_valid_len]]
+        valid_uid = uid_list[train_id[id_valid_len:]]
+        test_uid = uid_list[other_id]
 
         train_known = known_df[known_df.uid.isin(train_uid)]
         train_known = sample_rows(train_known, base_sample_size)
         valid_known = known_df[known_df.uid.isin(valid_uid)]
         if valid_undersampling:
             valid_known = sample_rows(valid_known, base_valid_size)
+        test_known = known_df[known_df.uid.isin(test_uid)]
 
-        train_word = unknown_words[train_wid]
-        valid_word = unknown_words[other_wid]
-        assert(set(train_wid) & set(valid_word) == set())
+        non_test_word = unknown_words[train_wid]        
+        test_word = unknown_words[other_wid]
         
         train_unknown = unknown_df[unknown_df.uid.isin(train_uid)]
-        train_unknown = train_unknown[train_unknown.label.isin(train_word)]
+        train_unknown = train_unknown[train_unknown.label.isin(non_test_word)]
         train_unknown = sample_rows(train_unknown, base_sample_size)
         valid_unknown = unknown_df[unknown_df.uid.isin(valid_uid)]
-        valid_unknown = valid_unknown[unknown_df.label.isin(valid_word)]
+        valid_unknown = valid_unknown[unknown_df.label.isin(non_test_word)]
         if valid_undersampling:
             valid_unknown = sample_rows(valid_unknown, base_valid_size)
+        test_unknown = unknown_df[unknown_df.uid.isin(test_uid)]
+        test_unknown = test_unknown[test_unknown.label.isin(test_word)]
 
         # quick check for proper validation
         train = pd.concat([train_known, train_unknown])
         valid = pd.concat([valid_known, valid_unknown])
-        
+        test = pd.concat([test_known, test_unknown])
+
+        assert(set(train_unknown.label) & set(valid_unknown.label) == set())
+        assert(set(test_unknown.label) & set(valid_unknown.label) == set())
         assert(set(train.uid) & set(valid.uid) == set())
+        assert(set(test.uid) & set(valid.uid) == set())
 
         train = augment_data_load(train, config.AUG_LIST, aug_version)
         silence_train = silence_data.iloc[train_sid]
@@ -463,8 +479,8 @@ def cv_adversarial_ensemble(estimator_name,
         if estimator_name == "VGG1Dv2":
             estimator = model.VGG1Dv2()
             estimator.model_init()
-        if estimator_name == "STFTCNN":
-            estimator = model.STFTCNN()
+        if estimator_name == "STFTCNNv2":
+            estimator = model.STFTCNNv2()
             estimator.model_init()
 
         print("learning start")
@@ -502,6 +518,7 @@ def cross_validation(estimator_name,
                      base_valid_size=50,
                      base_test_size=200,
                      batch_size=config.BATCH_SIZE,
+                     test_lb_dist_like=False,
                      silence_train_size=1800):
     
     """cross_validation func with silence_data
@@ -569,6 +586,17 @@ def cross_validation(estimator_name,
                                          aug_version,
                                          silence=True)
         test = pd.concat([test, silence_test])
+
+        if test_lb_dist_like:
+            grouped = test.groupby("possible_label")
+
+            def unknown_skewed_sample(df):
+                if df.possible_label == "unknown":
+                    df.sample(base_test_size)
+                else:
+                    df.sample(base_test_size//2)
+                    
+            test = grouped.apply(unknown_skewed_sample).reset_index(drop=True)
 
         # info of dataset
         print('{:>10},{:>10},{:>10},{:>10}'.format("type",
@@ -648,21 +676,22 @@ if __name__ == "__main__":
     utils.set_seed(seed)
 
     cv_version = "{time}_{model}_{seed}".format(**{'time': utils.now(),
-                                                   'model': "VGG1Dv2",
+                                                   'model': "STFTCNNv2",
                                                    'seed': seed})
-    cv_version += "_adversarial"
+    # cv_version += "_adversarial"
 
-    cnn = model.VGG1Dv2()
+    cnn = model.STFTCNNv2()
     # validation(config.SILENCE_DATA_VERSION,
     #            cnn,
     #            config.AUG_LIST,
     #            config.AUG_VERSION,
     #            train_online_aug=True,
     #            sample_size=2000)
-    res = cv_ensemble("VGG1Dv2",
+    res = cv_ensemble("STFTCNNv2",
                       config.SILENCE_DATA_VERSION,
                       cv_version,
                       config.AUG_VERSION,
                       config.AUG_LIST,
+                      oversampling=True,
                       online_aug=True,
                       pseudo_cv_version="STFTCNN/2018_01_07_05_16_53")

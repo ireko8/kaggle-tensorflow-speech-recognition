@@ -54,6 +54,7 @@ def make_pseudo_labeling(cv_version, fold,
             return sl[:sampling]
         
         pseudo_label = pseudo_label.apply(pseudo_sampling)
+        pseudo_label = pseudo_label.reset_index(drop=True)
     if max_probs_drop:
         pseudo_label = pseudo_label.drop("max_probs", axis=1)
     print(pseudo_label.possible_label.value_counts())

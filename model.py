@@ -215,3 +215,41 @@ class MelSpectCNN():
                       metrics=['accuracy'])
 
         self.model = model
+
+
+class STFTCNNv2():
+
+    def __init__(self,
+                 name="STFTCNNv2"):
+
+        self.name = name
+
+    def model_init(self, input_shape=(257, 98, 2)):
+
+        x_in = Input(shape=input_shape)
+        x = Conv2D(16, (3, 3), padding="same")(x_in)
+        x = Activation('relu')(x)
+        x = BatchNormalization()(x_in)
+        x = MaxPooling2D((2, 2))(x)
+        for i in range(4):
+            kernel_size = 32*(2 ** i)
+            x = Conv2D(kernel_size, (3, 3), padding="same")(x)
+            x = Activation('relu')(x)
+            x = BatchNormalization()(x)
+            x = Conv2D(kernel_size, (3, 3), padding="same")(x)
+            x = Activation('relu')(x)
+            x = BatchNormalization()(x)
+            x = MaxPooling2D((2, 2))(x)
+        x = Conv2D(256, (1, 1))(x)
+        x_branch_1 = GlobalAveragePooling2D()(x)
+        x_branch_2 = GlobalMaxPool2D()(x)
+        x = concatenate([x_branch_1, x_branch_2])
+        x = Dense(1024, activation='relu')(x)
+        x = Dropout(0.3)(x)
+        x = Dense(len(config.POSSIBLE_LABELS), activation='softmax')(x)
+        model = Model(inputs=x_in, outputs=x)
+        model.compile(optimizer='nadam',
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
+
+        self.model = model

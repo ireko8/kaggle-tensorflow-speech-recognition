@@ -73,6 +73,8 @@ def wav_to_melspct(wav, sample_rate=config.SAMPLE_RATE):
 def batch_generator(input_df, batch_size, category_num,
                     online=False,
                     bgn_paths=None,
+                    oversampling=False,
+                    sampling_size=None,
                     mode='train'):
     
     if online:
@@ -88,16 +90,20 @@ def batch_generator(input_df, batch_size, category_num,
     def online_aug_preprocess(row):
         wav = process_wav_file(row.path, bgn=bgn_data, online=True)
         assert(len(wav) == config.SAMPLE_RATE)
-        return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
+        return wav_to_spct(wav)
+        # return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
 
     def preprocess(path):
         wav = process_wav_file(path)
-        # return wav_to_spct(wav)
-        return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
+        return wav_to_spct(wav)
+        # return [np.array(wav).reshape((config.SAMPLE_RATE, 1))]
 
     while True:
         base_df = input_df
         if mode == "train":
+            if oversampling:
+                grouped = input_df.groupby('plnum')
+                base_df = grouped.apply(lambda x: x.sample(n=sampling_size))
             base_df_id = random.sample(range(base_df.shape[0]),
                                        base_df.shape[0])
         else:
@@ -116,10 +122,10 @@ def batch_generator(input_df, batch_size, category_num,
 
             x_batch = np.concatenate(x_batch_df)
                 
-            if len(x_batch.shape) != 3:
+            if len(x_batch.shape) != 4:
                 x_batch = np.stack(x_batch_df[:, 0])
 
-            while len(x_batch.shape) != 3:
+            while len(x_batch.shape) != 4:
                 import ipdb; ipdb.set_trace()
                 if online:
                     x_batch = batch_df.apply(online_aug_preprocess,

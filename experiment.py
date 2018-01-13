@@ -203,7 +203,7 @@ def cv_ensemble(estimator_name,
                 online_aug=False,
                 oversampling=False,
                 pseudo_cv_version=None,
-                pseudo_sampling=1800,
+                pseudo_sampling=3000,
                 test_aug_version=None,
                 pseudo_label_ratio=0.5,
                 batch_size=config.BATCH_SIZE):
@@ -252,7 +252,7 @@ def cv_ensemble(estimator_name,
         if pseudo_cv_version:
             pseudo_label = make_pseudo_labeling(pseudo_cv_version,
                                                 i,
-                                                sampling=3000)
+                                                sampling=pseudo_sampling)
             pseudo_size = int(base_sample_size*pseudo_label_ratio)
             if not oversampling:
                 pseudo_label = sample_rows(pseudo_label, pseudo_size)
@@ -674,24 +674,27 @@ def cross_validation(estimator_name,
 if __name__ == "__main__":
     seed = 5017
     utils.set_seed(seed)
-
-    cv_version = "{time}_{model}_{seed}".format(**{'time': utils.now(),
-                                                   'model': "STFTCNNv2",
-                                                   'seed': seed})
+    pseudo_cv_version = "STFTCNNv2/2018_01_12_01_39_43_STFTCNNv2_5017_2018_01_12_18_06_39"
+    cv_version = "{time}_{model}_{seed}_pseudo_{pscv}".format(**{'time': utils.now(),
+                                                                 'model': "VGG1Dv2",
+                                                                 'seed': seed,
+                                                                 'pscv': pseudo_cv_version})
     # cv_version += "_adversarial"
 
-    cnn = model.STFTCNNv2()
+    cnn = model.VGG1Dv2()
     # validation(config.SILENCE_DATA_VERSION,
     #            cnn,
     #            config.AUG_LIST,
     #            config.AUG_VERSION,
     #            train_online_aug=True,
     #            sample_size=2000)
-    res = cv_ensemble("STFTCNNv2",
+    
+    res = cv_ensemble("VGG1Dv2",
                       config.SILENCE_DATA_VERSION,
                       cv_version,
                       config.AUG_VERSION,
                       config.AUG_LIST,
                       oversampling=True,
                       online_aug=True,
-                      pseudo_cv_version="STFTCNN/2018_01_07_05_16_53")
+                      valid_undersampling=False,
+                      pseudo_cv_version=pseudo_cv_version)

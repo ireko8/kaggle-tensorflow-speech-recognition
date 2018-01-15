@@ -126,9 +126,10 @@ class VGG1Dv2():
         x = Activation("relu")(x)
         x = BatchNormalization()(x)
 
-        x_branch_1 = GlobalAveragePooling1D()(x)
-        x_branch_2 = GlobalMaxPool1D()(x)
-        x = concatenate([x_branch_1, x_branch_2])
+        # x_branch_1 = GlobalAveragePooling1D()(x)
+        # x_branch_2 = GlobalMaxPool1D()(x)
+        # x = concatenate([x_branch_1, x_branch_2])
+        x = GlobalAveragePooling1D()(x)
         x = Dense(1024, activation='relu')(x)
         x = Dropout(0.3)(x)
         x = Dense(len(config.POSSIBLE_LABELS), activation='softmax')(x)
@@ -162,7 +163,7 @@ class VGG1Dv3():
             return x
         
         x_in = Input(shape=input_shape)
-        x = Conv1Dbn(x_in, 1, 16, 8, st=2)
+        x = Conv1Dbn(x_in, 1, 3, 8)
         x = Conv1Dbn(x, 2, 3, 16)
         x = Conv1Dbn(x, 2, 3, 32)
         x = Conv1Dbn(x, 2, 3, 64, dropout=0.1)

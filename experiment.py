@@ -202,6 +202,7 @@ def cv_ensemble(estimator_name,
                 base_valid_size=400,
                 online_aug=False,
                 oversampling=False,
+                su_only_oversampling=False,
                 pseudo_cv_version=None,
                 pseudo_sampling=3000,
                 test_aug_version=None,
@@ -229,7 +230,7 @@ def cv_ensemble(estimator_name,
         valid_uid = uid_list[other_id]
 
         train = file_df[file_df.uid.isin(train_uid)]
-        if not oversampling:
+        if not oversampling or not su_only_oversampling:
             train = sample_rows(train, base_sample_size)
         valid = file_df[file_df.uid.isin(valid_uid)]
         if valid_undersampling:
@@ -240,7 +241,7 @@ def cv_ensemble(estimator_name,
 
         train = augment_data_load(train, config.AUG_LIST, aug_version)
         silence_train = silence_data.iloc[train_sid]
-        if not oversampling:
+        if not oversampling or not su_only_oversampling:
             silence_train = sample_rows(silence_train, base_sample_size)
         silence_train = augment_data_load(silence_train,
                                           config.AUG_LIST,
@@ -254,7 +255,7 @@ def cv_ensemble(estimator_name,
                                                 i,
                                                 sampling=pseudo_sampling)
             pseudo_size = int(base_sample_size*pseudo_label_ratio)
-            if not oversampling:
+            if not oversampling or not su_only_oversampling:
                 pseudo_label = sample_rows(pseudo_label, pseudo_size)
 
             if test_aug_version:
@@ -267,6 +268,13 @@ def cv_ensemble(estimator_name,
             sample_size += pseudo_size
             print("pseudo label class dist")
             print(pseudo_label.possible_label.value_counts())
+
+        if su_only_oversampling:
+            su_list = ["unknown", "silence"]
+            except_su = sample_rows(train[~train.possible_label.isin(su_list)],
+                                    sample_size)
+            except_su = except_su.reset_index(drop=True)
+            train = pd.concat([except_su, train[train.possible_label.isin(su_list)]])
 
         valid = augment_data_load(valid, config.AUG_LIST, aug_version)
         silence_valid = silence_data.iloc[other_sid]
@@ -308,6 +316,9 @@ def cv_ensemble(estimator_name,
             estimator.model_init()
         if estimator_name == "VGG1Dv2":
             estimator = model.VGG1Dv2()
+            estimator.model_init()
+        if estimator_name == "VGG1Dv3":
+            estimator = model.VGG1Dv3()
             estimator.model_init()
         if estimator_name == "STFTCNNv2":
             estimator = model.STFTCNNv2()
@@ -634,6 +645,9 @@ def cross_validation(estimator_name,
         if estimator_name == "VGG1Dv2":
             estimator = model.VGG1Dv2()
             estimator.model_init()
+        if estimator_name == "VGG1Dv3":
+            estimator = model.VGG1Dv3()
+            estimator.model_init()
         if estimator_name == "STFTCNN":
             estimator = model.STFTCNN()
             estimator.model_init()
@@ -672,16 +686,15 @@ def cross_validation(estimator_name,
 
 
 if __name__ == "__main__":
-    seed = 5017
+    seed = 10017
     utils.set_seed(seed)
-    pseudo_cv_version = "STFTCNNv2/2018_01_12_01_39_43_STFTCNNv2_5017_2018_01_12_18_06_39"
-    cv_version = "{time}_{model}_{seed}_pseudo_{pscv}".format(**{'time': utils.now(),
-                                                                 'model': "VGG1Dv2",
-                                                                 'seed': seed,
-                                                                 'pscv': pseudo_cv_version})
+    cv_version = "{time}_{model}_{seed}".format(**{'time': utils.now(),
+                                                   'model': "VGG1Dv2",
+                                                   'seed': seed})
+
     # cv_version += "_adversarial"
 
-    cnn = model.VGG1Dv2()
+    # cnn = model.VGG1Dv2()
     # validation(config.SILENCE_DATA_VERSION,
     #            cnn,
     #            config.AUG_LIST,
@@ -696,5 +709,5 @@ if __name__ == "__main__":
                       config.AUG_LIST,
                       oversampling=True,
                       online_aug=True,
-                      valid_undersampling=False,
-                      pseudo_cv_version=pseudo_cv_version)
+                      su_only_oversampling=True,
+                      valid_undersampling=False)

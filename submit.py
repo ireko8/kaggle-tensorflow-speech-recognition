@@ -50,11 +50,11 @@ if __name__ == '__main__':
     id2name = dict(zip(range(len(config.POSSIBLE_LABELS)),
                        config.POSSIBLE_LABELS))
     
-    cnn = model.VGG1Dv2()
+    cnn = model.STFTCNNv2()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
     # cnn.model.load_weights("model/VGG1Dv2/2018_01_09_02_15_56/weights.hdf5")
-    cv_version = "2018_01_12_19_45_41_VGG1Dv2_5017_pseudo_STFTCNNv2/2018_01_12_01_39_43_STFTCNNv2_5017_2018_01_12_18_06_39"
+    cv_version = "2018_01_13_13_31_43_VGG1Dv2_5017_pseudo_VGG1Dv2/2018_01_12_19_45_41_VGG1Dv2_5017_pseudo_STFTCNNv2_2018_01_12_01_39_43_STFTCNNv2_5017_2018_01_12_18_06_39_2018_01_13_12_29_16"
     
     cv_path = "cv/{}/{}".format(cnn.name, cv_version)
     cv_version = cv_version.replace('/', '_')

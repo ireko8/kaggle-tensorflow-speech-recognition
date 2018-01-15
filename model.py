@@ -130,7 +130,7 @@ class VGG1Dv2():
         # x_branch_2 = GlobalMaxPool1D()(x)
         # x = concatenate([x_branch_1, x_branch_2])
         x = GlobalAveragePooling1D()(x)
-        x = Dense(1024, activation='relu')(x)
+        x = Dense(512, activation='relu')(x)
         x = Dropout(0.3)(x)
         x = Dense(len(config.POSSIBLE_LABELS), activation='softmax')(x)
         model = Model(inputs=x_in, outputs=x)

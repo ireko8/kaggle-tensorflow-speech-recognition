@@ -48,8 +48,7 @@ def extract_file_info(audio_path):
     v = train_wavs.apply(extract_uid_and_nohash)
     train_file_info = pd.concat([train_wavs, v], axis=1)
     
-    with open(Path.joinpath(train_path,
-                            "validation_list.txt"), "r") as valid_list:
+    with open(str(train_path/"validation_list.txt"), "r") as valid_list:
         valid_list = valid_list.readlines()
         
     valid_list = [fname.replace('\n', '') for fname in valid_list]
@@ -68,7 +67,9 @@ def extract_file_info(audio_path):
 
 
 if __name__ == '__main__':
-    version = "2017_12_28_20_04_03"
+    # train_file_info = extract_file_info(config.TRAIN_AUDIO_PATH)
+    # train_file_info.to_csv('data/train_file_info.csv')
+    version = "2018_01_12_05_19_46_param_fixed"
     augment_path = Path("data/augment")/version
     # aug_dirs = ["mix_random2"]
     aug_dirs = augment_path.glob('*')

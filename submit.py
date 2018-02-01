@@ -18,7 +18,7 @@ def test_data_load():
 
 
 def predict(test_paths, silence_paths, estimator):
-    batch_size = 64
+    batch_size = config.BATCH_SIZE
     test_generator = generator.batch_generator(test_paths,
                                                batch_size,
                                                len(config.POSSIBLE_LABELS),
@@ -50,37 +50,47 @@ if __name__ == '__main__':
     id2name = dict(zip(range(len(config.POSSIBLE_LABELS)),
                        config.POSSIBLE_LABELS))
     
-    cnn = model.VGG1Dv2()
+    cnn = model.VGG1Dv3()
     cnn.model_init()
     test_paths, silence_paths = test_data_load()
-    # cnn.model.load_weights("model/VGG1Dv2/2017_12_30_12_47_43/weights.hdf5")
-    cv_version = "2018_01_01_20_40_05_VGG1Dv2_3017_augmented"
+    cnn.model.load_weights("cv/VGG1Dv3/2018_01_17_18_11_01_VGG1Dv3_2018_online_pseudo_VGG1Dv2/2018_01_10_22_50_50_VGG1Dv2_3018_online_2018_01_11_09_26_40_pseudosize_3000/fold_0.hdf5")
+    sub_name = utils.now()
+    # cv_version = "2018_01_14_06_41_34_STFTCNNv2_3018_online_pseudo_VGG1Dv2/2018_01_10_22_50_50_VGG1Dv2_3018_online_2018_01_11_09_26_40_pseudosize_3000"
     
-    cv_path = "cv/{}/{}".format(cnn.name, cv_version)
-    sub_path = Path("sub/{}".format(cnn.name))/version
-    sub_path.mkdir(parents=True, exist_ok=True)
+    # cv_path = "cv/{}/{}".format(cnn.name, cv_version)
+    # sub_name = "{}_cv_{}".format(version,
+    #                              cv_version,
+    #                              pseudo_version)
+    # sub_name = sub_name.replace("/", "_")
+    # sub_path = Path("sub/{}".format(cnn.name))/sub_name
+    # sub_path.mkdir(parents=True, exist_ok=True)
 
-    print("ensemble start")
-    ensemble_probs = ensemble(cnn,
-                              cv_path,
-                              test_paths,
-                              silence_paths,
-                              sub_path)
-    print("done")
+    # print("ensemble start")
+    # ensemble_probs = ensemble(cnn,
+    #                           cv_path,
+    #                           test_paths,
+    #                           silence_paths,
+    #                           sub_path)
+    # print("done")
     
     test_fname = test_paths["path"].apply(lambda x: Path(x).parts[-1])
 
-    print("dump cv probs")
-    for fold, probs in enumerate(ensemble_probs):
-        print("fold {}".format(fold))
-        sub_fold_plobs = pd.DataFrame(probs,
-                                      columns=config.POSSIBLE_LABELS)
-        sub_fold_plobs_df = pd.concat([test_fname, sub_fold_plobs], axis=1)
-        sub_fold_plobs_df.to_csv(sub_path/"{}_probs.csv".format(fold),
-                                 index=False)
+    # print("dump cv probs")
+    # for fold, probs in enumerate(ensemble_probs):
+    #     print("fold {}".format(fold))
+    #     sub_fold_plobs = pd.DataFrame(probs,
+    #                                   columns=config.POSSIBLE_LABELS)
+    #     sub_fold_plobs_df = pd.concat([test_fname, sub_fold_plobs], axis=1)
+    #     sub_fold_plobs_df.to_csv(sub_path/"{}_probs.csv".format(fold),
+    #                              index=False)
 
-    predict_probs = np.array(ensemble_probs).mean(axis=0)
-    # predict_probs = predict(test_paths, silence_paths, cnn)
+    # predict_probs = np.array(ensemble_probs).mean(axis=0)
+    predict_probs = predict(test_paths, silence_paths, cnn)
+
+    prob_df = pd.DataFrame(predict_probs,
+                           columns=config.POSSIBLE_LABELS)
+    sub_prob_df = pd.concat([test_fname, prob_df], axis=1)
+    sub_prob_df.to_csv("mfcc.csv", index=False)
     predict_cls = np.argmax(predict_probs, axis=1)
 
     submission = dict()
@@ -91,7 +101,8 @@ if __name__ == '__main__':
         label = id2name[predict_cls[i]]
         submission[fname] = label
 
-    with open('submit/{}.csv'.format(version), 'w') as fout:
+
+    with open('submit/{}.csv'.format(sub_name), 'w') as fout:
         fout.write('fname,label\n')
         for fname, label in submission.items():
             fout.write('{},{}\n'.format(fname, label))

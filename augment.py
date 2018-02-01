@@ -3,12 +3,17 @@ from functools import partial
 import numpy as np
 import pandas as pd
 import scipy.signal as signal
+import os
+os.environ['LIBROSA_CACHE_DIR'] = '/tmp/librosa_cache'
 import librosa
+from tqdm import tqdm
 import soundfile as sf
 import config
 import utils
 import generator
 import experiment
+import noise
+import submit
 
 
 def change_volume(wav, rate):
@@ -38,6 +43,10 @@ def zero_padding_random(wav, sample_rate):
 
 def shift(wav, shift):
     shifted = np.zeros_like(wav)
+    while shift == 0:
+        shift = np.random.randint(config.SHIFT_MIN,
+                                  config.SHIFT_MAX)
+        
     if shift >= 0:
         shifted[shift:] += wav[:-shift]
     else:
@@ -68,8 +77,11 @@ def add_whitenoise(wav, rate=0.005):
     return np.clip(wav, -1, 1).astype(np.float32)
 
 
-def add_pinknoise(wav, rate=0.005):
-    NotImplemented
+def add_noise(nt):
+    def _add_noise(wav, rate=0.005):
+        wav = (1-rate)*wav + noise.gen_noise(nt, rate)
+        return np.clip(wav, -1, 1).astype(np.float32)
+    return _add_noise
 
 
 def distortion(wav, threshold, level):
@@ -150,24 +162,41 @@ class Augment():
                                               end=-config.SHIFT_MIN,
                                               integer=True)(shift)
 
-        speed_up = utils.rand_decorator("rate",
-                                        start=config.SPEED_UP_MIN,
-                                        end=config.SPEED_UP_MAX)(strech)
+        # speed_up = utils.rand_decorator("rate",
+        #                                 start=config.SPEED_UP_MIN,
+        #                                 end=config.SPEED_UP_MAX)(strech)
 
-        speed_down = utils.rand_decorator("rate",
-                                          start=config.SPEED_DOWN_MIN,
-                                          end=config.SPEED_DOWN_MAX)(strech)
+        # speed_down = utils.rand_decorator("rate",
+        #                                   start=config.SPEED_DOWN_MIN,
+        #                                   end=config.SPEED_DOWN_MAX)(strech)
+        speed_up = partial(strech, rate=config.SPEED_UP_MAX)
+        speed_down = partial(strech, rate=config.SPEED_UP_MIN)
 
-        pitch_up = utils.rand_decorator("pitch",
-                                        start=config.PITCH_MIN,
-                                        end=config.PITCH_MAX)(pitch_shift)
-
+        # pitch_up = utils.rand_decorator("pitch",
+        #                                 start=config.PITCH_MIN,
+        #                                 end=config.PITCH_MAX)(pitch_shift)
+        pitch_up = partial(pitch_shift, pitch=config.PITCH_MIN)
+        pitch_down = partial(pitch_shift, pitch=config.PITCH_MAX)
+        
         add_wn = utils.rand_decorator("rate",
                                       start=config.ADD_WN_MIN,
                                       end=config.ADD_WN_MAX)(add_whitenoise)
         add_wn2 = utils.rand_decorator("rate",
                                        start=0.1,
                                        end=0.5)(add_whitenoise)
+
+        add_bn = utils.rand_decorator("rate",
+                                      start=config.ADD_WN_MIN,
+                                      end=config.ADD_WN_MAX)(add_noise("blue"))
+        add_brn = utils.rand_decorator("rate",
+                                       start=config.ADD_WN_MIN,
+                                       end=config.ADD_WN_MAX)(add_noise("brown"))
+        add_vn = utils.rand_decorator("rate",
+                                      start=config.ADD_WN_MIN,
+                                      end=config.ADD_WN_MAX)(add_noise("violet"))
+        add_rn = utils.rand_decorator("rate",
+                                      start=config.ADD_WN_MIN,
+                                      end=config.ADD_WN_MAX)(add_noise("red"))
 
         patch_bg = partial(patch_bg_random, sample_rate=config.SAMPLE_RATE,
                            bgn=bgn)
@@ -200,8 +229,13 @@ class Augment():
                            "speed_up": speed_up,
                            "speed_down": speed_down,
                            "pitch_up": pitch_up,
+                           "pitch_down": pitch_down,
                            "add_wn": add_wn,
                            "add_wn2": add_wn2,
+                           "add_bn": add_bn,
+                           "add_brn": add_brn,
+                           "add_rn": add_rn,
+                           "add_vn": add_vn,
                            "patch_bg": patch_bg,
                            "mix_bgn": mix_bgn,
                            "mix_random": mix_random,
@@ -227,10 +261,11 @@ class Augment():
                      wav,
                      config.SAMPLE_RATE,
                      subtype='PCM_16')
-                
+
+        tqdm.pandas(desc='augment')
         for aug in self.augment_list:
             print(aug)
-            paths.path.apply(lambda x: aug_file(x, aug, dir_path))
+            paths.path.progress_apply(lambda x: aug_file(x, aug, dir_path))
 
 
 if __name__ == "__main__":
@@ -238,16 +273,22 @@ if __name__ == "__main__":
     
     sdata = config.SILENCE_DATA_VERSION
     train_paths, bgn_paths, silence_paths = experiment.data_load(sdata)
-    print(train_paths.columns)
+    # test_paths, bgn_paths = submit.test_data_load()
 
     # bgn_paths = bgn_paths[~bgn_paths.path.str.contains("white")]
     bgn_data = [generator.read_wav_file(x)[1] for x in bgn_paths.path]
     bgn_data = np.concatenate(bgn_data)
 
-    directory = utils.now()
+    directory = "{}_param_fixed".format(utils.now())
 
-    aug_class = Augment(bgn_data, config.AUG_LIST)
+    aug_class = Augment(bgn_data, ["pitch_up",
+                                   "pitch_down",
+                                   "speed_up",
+                                   "speed_down"])
 
+    # print('test augmentation')
+    # aug_class.dump(test_paths, directory)
+    
     print('train augmentation')
     aug_class.dump(train_paths, directory)
     print('silence augmentation')
